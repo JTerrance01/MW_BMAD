@@ -1,0 +1,768 @@
+:root {
+  /* Dark Theme (Default) Color Variables */
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2d2d2d;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(
+    255,
+    255,
+    255,
+    0.9
+  ); /* Increased opacity for better contrast */
+  --text-muted: rgba(
+    255,
+    255,
+    255,
+    0.8
+  ); /* Increased opacity for better contrast */
+  --accent-primary: #00c8ff; /* Electric blue accent */
+  --accent-secondary: #00e5b3; /* Teal accent */
+  --border-color: rgba(255, 255, 255, 0.15);
+  --card-bg: #1e1e1e;
+  --card-border: rgba(255, 255, 255, 0.05);
+  --danger: #ff3b5c;
+  --success: #00e5b3;
+  --warning: #ffb800;
+
+  /* Light Mode Text Colors */
+  --light-text-primary: #212529; /* Dark gray for primary text */
+  --light-text-secondary: #495057; /* Medium gray for secondary text */
+  --light-text-muted: #6c757d; /* Lighter gray for muted text */
+  --light-heading: #111; /* Almost black for headings */
+  --light-link: #0056b3; /* Darker blue for links */
+  --light-link-hover: #003d7a; /* Even darker blue for link hover */
+
+  /* Spacing Variables */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+
+  /* Typography */
+  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+  --font-family-mono: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+
+  /* Border Radius */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 0.75rem;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* Improved Text Readability Styles */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-normal: 1.5;
+  --letter-spacing-wide: 0.01em;
+}
+
+/* Base Styles */
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color var(--transition-normal);
+}
+
+code {
+  font-family: var(--font-family-mono);
+}
+
+/* Layout Utilities */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* Card Styles */
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: 0.75rem;
+}
+
+.card-hover {
+  transition: transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Images */
+.product-image {
+  object-fit: cover;
+  height: 200px;
+  width: 100%;
+  border-top-left-radius: var(--border-radius-md);
+  border-top-right-radius: var(--border-radius-md);
+  transition: transform var(--transition-normal);
+}
+
+.card-hover:hover .product-image {
+  transform: scale(1.05);
+}
+
+/* Overlay for product images to improve text contrast */
+.card .position-absolute.bottom-0 {
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
+  width: 100%;
+  padding-top: 3rem;
+}
+
+/* Admin Layout */
+.admin-sidebar {
+  min-height: calc(100vh - 56px);
+  background-color: var(--bg-secondary);
+}
+
+.admin-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+}
+
+/* Typography Utilities */
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  height: 2.8em;
+}
+
+/* Improve text readability on dark backgrounds */
+.text-secondary {
+  color: var(--text-secondary) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+.lead.text-secondary {
+  color: var(--text-primary) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Button Styles */
+.btn {
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  transition: all var(--transition-fast);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #000;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--accent-primary);
+  filter: brightness(1.1);
+  box-shadow: 0 0 0 0.25rem rgba(0, 200, 255, 0.25);
+  color: #000;
+}
+
+.btn-outline-primary {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #000;
+}
+
+.btn-outline-light {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.5);
+  font-weight: var(--font-weight-medium);
+}
+
+.btn-outline-light:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.btn-link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  padding: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.btn-link:hover {
+  color: var(--accent-primary);
+  filter: brightness(1.2);
+  text-decoration: underline;
+}
+
+/* Navigation */
+.navbar {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  background-color: rgba(
+    18,
+    18,
+    18,
+    0.9
+  ) !important; /* Darker for better contrast */
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md) 0;
+}
+
+.navbar-brand {
+  font-weight: var(--font-weight-bold);
+  font-size: 1.5rem;
+  color: var(--text-primary) !important;
+}
+
+.nav-link {
+  color: var(--text-secondary) !important;
+  font-weight: var(--font-weight-medium);
+  padding: 0.5rem 1rem;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  color: var(--text-primary) !important;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  transition: all var(--transition-normal);
+  transform: translateX(-50%);
+}
+
+.nav-link:hover::after,
+.nav-link:focus::after {
+  width: 50%;
+}
+
+/* Improve focus states for accessibility */
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.btn:focus {
+  box-shadow: 0 0 0 0.25rem rgba(0, 200, 255, 0.4);
+}
+
+/* Footer */
+footer {
+  background-color: var(--bg-secondary) !important;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.25rem rgba(0, 200, 255, 0.25);
+  color: var(--text-primary);
+}
+
+.form-control::placeholder,
+.form-select::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.form-label {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 0.5rem;
+}
+
+/* Sidebar Navigation Style */
+.sidebar-nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: var(--spacing-md);
+  display: block;
+  border-radius: var(--border-radius-md);
+  transition: background-color var(--transition-fast);
+  margin-bottom: var(--spacing-xs);
+}
+
+.sidebar-nav-link:hover,
+.sidebar-nav-link.active {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Badge Styles */
+.badge {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-wide);
+  border-radius: 20px;
+  padding: 0.35em 0.6em;
+}
+
+.badge.bg-dark {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.badge.bg-success {
+  background-color: var(--success) !important;
+  color: #000 !important;
+}
+
+.badge.bg-warning {
+  color: #000 !important;
+}
+
+/* Footer Styles */
+.footer-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  font-weight: var(--font-weight-medium);
+  display: inline-block;
+  padding: 0.2rem 0;
+}
+
+.footer-link:hover {
+  color: var(--accent-primary);
+}
+
+footer h5,
+footer h6 {
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+}
+
+footer p {
+  color: var(--text-secondary);
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.social-icon:hover {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  transform: translateY(-3px);
+}
+
+.newsletter .form-control {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.6rem 1rem;
+}
+
+/* No caret for user dropdown */
+.no-caret::after {
+  display: none !important;
+}
+
+/* Hero Section Styles */
+.hero-section {
+  background: linear-gradient(135deg, var(--bg-secondary), #121212);
+  padding: var(--spacing-xxl) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-image-container {
+  height: 400px;
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+}
+
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.text-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Product Preview Button */
+.preview-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  opacity: 0.9;
+}
+
+.card:hover .preview-btn {
+  opacity: 1;
+}
+
+.preview-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Community Spotlight */
+.bg-gradient-spotlight {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 200, 255, 0.15),
+    rgba(0, 229, 179, 0.15)
+  );
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--border-radius-lg);
+  transition: transform var(--transition-normal);
+}
+
+.bg-gradient-spotlight .card-body {
+  background-color: rgba(30, 30, 30, 0.7);
+}
+
+.bg-gradient-spotlight .h5 {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.bg-gradient-spotlight .h6 {
+  color: var(--accent-primary);
+}
+
+.bg-gradient-spotlight:hover {
+  transform: translateY(-5px);
+}
+
+/* Border Radius Utilities */
+.rounded-xl {
+  border-radius: var(--border-radius-lg);
+}
+
+/* Image Utilities */
+.object-fit-cover {
+  object-fit: cover;
+}
+
+/* Improved Text Readability Styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  margin-bottom: 1rem;
+}
+
+p {
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+}
+
+/* Table text readability */
+.table {
+  color: var(--text-primary);
+}
+
+.table th {
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.table td {
+  color: var(--text-primary);
+}
+
+/* Competition cards text */
+.card-title,
+.card-subtitle,
+.card-text {
+  color: var(--text-primary);
+}
+
+.card-subtitle.text-muted {
+  color: var(--text-muted) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Tab navigation text */
+.nav-tabs .nav-link {
+  color: var(--text-secondary) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--accent-primary) !important;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Improve readability for elements on competition page */
+.list-unstyled.text-secondary {
+  color: var(--text-primary) !important;
+}
+
+.list-unstyled.text-secondary strong,
+.text-secondary strong {
+  color: var(--accent-primary);
+}
+
+/* Fix competition details text */
+ul.text-secondary li {
+  color: var(--text-primary);
+}
+
+/* Competition details specific styles */
+.card-body .d-flex .text-secondary,
+.text-secondary span {
+  color: var(--accent-primary) !important;
+}
+
+/* Better readability for competition details sidebar */
+.card .d-flex .text-secondary {
+  color: var(--accent-primary) !important;
+}
+
+/* Improve readability for deadline and time remaining values */
+.sticky-top .d-flex span:not(.text-secondary) {
+  color: var(--text-primary) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Improve card header contrast */
+.card-header {
+  color: var(--text-primary);
+}
+
+/* Improved Form Label Readability */
+.form-label.text-secondary {
+  color: var(--text-primary) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Create light mode text classes for better readability when needed */
+.text-dark-primary {
+  color: var(--light-text-primary) !important;
+}
+
+.text-dark-secondary {
+  color: var(--light-text-secondary) !important;
+}
+
+.text-heading {
+  color: var(--light-heading) !important;
+}
+
+/* Apply better contrast for links */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-secondary);
+  text-decoration: underline;
+}
+
+/* Light context links */
+.light-context a {
+  color: var(--light-link);
+}
+
+.light-context a:hover {
+  color: var(--light-link-hover);
+}
+
+/* Product Card Improvements */
+.price-tag {
+  color: var(--accent-primary);
+  font-size: 1.1rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.5px;
+}
+
+/* Filter Section Improvements */
+.card.bg-secondary.bg-opacity-10 {
+  background-color: rgba(45, 45, 45, 0.5) !important;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+/* Improved readability containers for content sections */
+.readable-content {
+  color: var(--light-text-primary);
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+.readable-content h1,
+.readable-content h2,
+.readable-content h3,
+.readable-content h4,
+.readable-content h5,
+.readable-content h6 {
+  color: var(--light-heading);
+  font-weight: 700;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+}
+
+.readable-content p {
+  margin-bottom: 1.25rem;
+}
+
+.readable-content a {
+  color: var(--light-link);
+  font-weight: 500;
+}
+
+.readable-content a:hover {
+  color: var(--light-link-hover);
+}
+
+/* Improved text colors for card content to ensure better readability */
+.card-title {
+  color: var(--light-heading);
+  font-weight: var(--font-weight-semibold);
+}
+
+.card-text {
+  color: var(--light-text-primary);
+}
+
+/* List text readability */
+ul li,
+ol li {
+  color: var(--text-primary);
+}
+
+ul li strong,
+ol li strong {
+  color: var(--accent-primary);
+}
+
+/* Fix for list items in darker cards */
+.card ul li,
+.card ol li {
+  color: var(--text-primary);
+}
+
+/* Fix for badge text in dark sections */
+.badge {
+  color: #000;
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge.bg-secondary,
+.badge.bg-danger,
+.badge.bg-info,
+.badge.bg-dark {
+  color: var(--text-primary) !important;
+}
+
+/* Fix for competition overview sections */
+#overview p {
+  color: var(--text-primary);
+}
+
+/* Text Accent */
+.text-accent-primary {
+  color: var(--accent-primary);
+}
+
+/* Category pill badges */
+.badge.bg-dark.pill {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}

@@ -1,0 +1,347 @@
+/* Blog Article Content Styling */
+.article-content {
+  font-family: var(--font-family-sans);
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 30px;
+  font-size: 1.05rem;
+}
+
+/* Typography */
+.article-content h1,
+.article-content h2,
+.article-content h3,
+.article-content h4,
+.article-content h5,
+.article-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.article-content h1 {
+  font-size: 2rem;
+  margin-top: 2em;
+}
+
+.article-content h2 {
+  font-size: 1.75rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+
+.article-content h3 {
+  font-size: 1.5rem;
+}
+
+.article-content h4 {
+  font-size: 1.25rem;
+}
+
+.article-content p {
+  margin-bottom: 1.25em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Lists */
+.article-content ul,
+.article-content ol {
+  margin-bottom: 1.25em;
+  padding-left: 2em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.article-content li {
+  margin-bottom: 0.5em;
+}
+
+.article-content li > ul,
+.article-content li > ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Blockquotes */
+.article-content blockquote {
+  margin: 1.5em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid var(--accent-primary);
+  color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(30, 30, 30, 0.9);
+}
+
+.article-content blockquote > :first-child {
+  margin-top: 0;
+}
+
+.article-content blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* Code blocks and inline code */
+.article-content pre {
+  background-color: #2a2a2a;
+  border-radius: 3px;
+  padding: 16px;
+  overflow: auto;
+  font-family: var(--font-family-mono);
+  font-size: 0.85em;
+  line-height: 1.45;
+  margin-bottom: 1.5em;
+  color: #e6e6e6;
+}
+
+.article-content code {
+  background-color: #2a2a2a;
+  border-radius: 3px;
+  font-family: var(--font-family-mono);
+  font-size: 0.85em;
+  padding: 0.2em 0.4em;
+  margin: 0;
+  color: #e6e6e6;
+}
+
+.article-content pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Tables */
+.article-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5em;
+  overflow: auto;
+}
+
+.article-content table th,
+.article-content table td {
+  border: 1px solid var(--border-color);
+  padding: 0.5em 1em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.article-content table th {
+  background-color: rgba(45, 45, 45, 0.9);
+  font-weight: var(--font-weight-semibold);
+  color: #ffffff;
+}
+
+.article-content table tr:nth-child(2n) {
+  background-color: rgba(40, 40, 40, 0.5);
+}
+
+/* Images */
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5em auto;
+  border-radius: 5px;
+}
+
+/* Links */
+.article-content a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.article-content a:hover {
+  text-decoration: underline;
+  color: #00e5ff;
+}
+
+/* Horizontal rule */
+.article-content hr {
+  height: 1px;
+  background-color: var(--border-color);
+  border: none;
+  margin: 2em 0;
+}
+
+/* Comment section styling */
+.comment {
+  transition: all 0.2s ease;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.comment:hover {
+  background-color: rgba(45, 45, 45, 0.7);
+}
+
+.comment p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.comment h6 {
+  color: #ffffff;
+  font-weight: var(--font-weight-semibold);
+}
+
+.replies {
+  border-left: 1px solid var(--border-color);
+  padding-left: 1rem;
+}
+
+/* Reply button hover effect */
+.comment button.btn-link:hover {
+  color: var(--accent-primary) !important;
+}
+
+/* Comment form styling */
+#comment-form textarea:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 200, 255, 0.25);
+}
+
+/* Image zoom effect on hover */
+.featured-image img {
+  transition: transform 0.3s ease;
+}
+
+.featured-image:hover img {
+  transform: scale(1.02);
+}
+
+/* Blog card & list styles */
+.blog-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.blog-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.blog-card .card-title a {
+  color: #ffffff;
+  font-weight: var(--font-weight-semibold);
+}
+
+.blog-card .card-title a:hover {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.blog-card .text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.blog-card .card-text {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Blog meta information styling */
+.blog-meta {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.blog-meta a {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.blog-meta a:hover {
+  color: var(--accent-primary);
+}
+
+/* Better readability for blog sidebar */
+.blog-sidebar {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border) !important;
+}
+
+.blog-sidebar h3.h5 {
+  color: #ffffff;
+  font-weight: var(--font-weight-semibold);
+}
+
+.blog-sidebar ul li a {
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.2s ease;
+}
+
+.blog-sidebar ul li a:hover {
+  color: var(--accent-primary);
+  transform: translateX(3px);
+  display: inline-block;
+}
+
+/* Blog tags */
+.blog-tag {
+  background-color: rgba(45, 45, 45, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  font-weight: var(--font-weight-medium);
+}
+
+.blog-tag:hover {
+  background-color: var(--accent-primary);
+  color: #000 !important;
+  border-color: var(--accent-primary);
+}
+
+/* Markdown content */
+.markdown-content {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: #ffffff;
+}
+
+.markdown-content p,
+.markdown-content li {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.markdown-content a {
+  color: var(--accent-primary);
+}
+
+.markdown-content a:hover {
+  color: #00e5ff;
+}
+
+/* Pagination improvements for dark theme */
+.pagination .page-link {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pagination .page-link:hover {
+  background-color: var(--bg-tertiary);
+  color: #ffffff;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #000;
+}
+
+/* Form control styling for the blog section */
+.blog-sidebar .form-control {
+  background-color: rgba(30, 30, 30, 0.8);
+  border: 1px solid var(--border-color);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.blog-sidebar .form-control:focus {
+  background-color: rgba(35, 35, 35, 0.9);
+  color: #ffffff;
+  border-color: rgba(0, 200, 255, 0.5);
+  box-shadow: 0 0 0 0.2rem rgba(0, 200, 255, 0.25);
+}

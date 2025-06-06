@@ -1,0 +1,135 @@
+/* User Activity Styling */
+.user-activity-stats h2,
+.user-activity-stats h3,
+.user-activity-stats h4,
+.user-activity-stats h5 {
+  font-family: var(--font-family-sans);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.user-activity-stats h2 {
+  font-size: 2.2rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-primary);
+}
+
+.user-activity-stats h3 {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.user-activity-stats .text-accent-primary {
+  color: var(--accent-primary) !important;
+  font-weight: var(--font-weight-semibold);
+}
+
+.user-activity-stats .card {
+  background-color: var(--bg-secondary);
+  transition: all var(--transition-normal);
+}
+
+.user-activity-stats .card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.user-activity-stats .card-header {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-medium);
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-activity-stats .card-body {
+  padding: 1.25rem;
+}
+
+.user-activity-stats .text-secondary {
+  color: var(--text-secondary) !important;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Activity stat cards styling */
+.activity-stat-card {
+  border-radius: var(--border-radius-md) !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm) !important;
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.activity-stat-card:hover {
+  box-shadow: var(--shadow-md) !important;
+  transform: translateY(-5px);
+}
+
+/* Direct font overrides for the stats cards */
+.user-activity-stats .row .card .stats-number,
+.stats-number {
+  color: var(--accent-primary) !important;
+  font-size: 2.2rem !important;
+  font-weight: var(--font-weight-semibold) !important;
+  margin-bottom: 0.5rem !important;
+  font-family: var(--font-family-sans) !important;
+  line-height: 1.2 !important;
+}
+
+.user-activity-stats .row .card .stats-label,
+.stats-label {
+  color: var(--text-secondary) !important;
+  font-size: 1rem !important;
+  font-weight: var(--font-weight-medium) !important;
+  margin-bottom: 0 !important;
+  font-family: var(--font-family-sans) !important;
+}
+
+/* Activity history styling */
+.user-activity-history h3 {
+  font-family: var(--font-family-sans);
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.user-activity-history .card {
+  background-color: var(--bg-secondary);
+}
+
+.user-activity-history .card-header {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-medium);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-activity-history .form-label {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Add specific style for the navbar tabs */
+.nav-tabs .nav-link {
+  color: var(--text-secondary) !important;
+  font-weight: var(--font-weight-medium) !important;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--accent-primary) !important;
+  font-weight: var(--font-weight-semibold) !important;
+}
+
+/* Make sure bootstrap's responsive text doesn't affect our styling */
+@media (max-width: 768px) {
+  .user-activity-stats .row .card .stats-number,
+  .stats-number {
+    font-size: 1.8rem !important;
+  }
+
+  .user-activity-stats .row .card .stats-label,
+  .stats-label {
+    font-size: 0.9rem !important;
+  }
+}

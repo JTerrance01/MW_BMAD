@@ -1,0 +1,16 @@
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
+
+const Markdown = ({ content }) => {
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ node, ...props }) => <p className="custom-class" {...props} />,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+};
+
+export default Markdown;

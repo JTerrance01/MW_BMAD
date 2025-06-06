@@ -1,0 +1,62 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.cs text diff=csharp
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+*.json text
+*.html text
+*.htm text
+*.css text
+*.scss text
+*.sass text
+*.less text
+*.xml text
+*.yml text
+*.yaml text
+*.md text
+*.txt text
+*.config text
+*.sql text
+
+# .NET specific
+*.csproj text
+*.sln text merge=union
+*.props text
+*.targets text
+*.resx text
+
+# Scripts
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.sh text eol=lf
+
+# Documentation
+*.markdown text
+*.mdown text
+*.mkdn text
+*.md text
+
+# Binary files
+*.dll binary
+*.exe binary
+*.pdb binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary 

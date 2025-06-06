@@ -339,216 +339,335 @@ namespace MixWarz.Infrastructure.Services
                 throw new Exception($"Competition must be in VotingRound1Open or VotingRound1Tallying status for tallying, current status: {competition.Status}");
             }
 
-            // UPDATED APPROACH: Calculate TotalPoints from SubmissionJudgments OverallScore and determine rankings
-            // This processes judgment data to calculate scores and vote counts
+            _logger.LogInformation($"🔄 Starting comprehensive Round 1 tallying for competition {competitionId}");
 
-            // BUSINESS RULE: Get complete judges who finished ALL assigned submissions for fair competition
-            var completeJudges = await GetCompleteJudgesForCompetitionAsync(competitionId);
+            // PHASE 1: JUDGE DISQUALIFICATION LOGIC
+            // Identify and disqualify submissions from judges who didn't complete their assignments
+            _logger.LogInformation($"📋 Phase 1: Identifying incomplete judges and applying disqualifications");
 
-            if (completeJudges.Count == 0)
+            var incompleteJudgesDisqualified = await DisqualifyIncompleteJudgesSubmissionsAsync(competitionId);
+            if (incompleteJudgesDisqualified > 0)
             {
-                _logger.LogWarning($"⚠️ Competition {competitionId}: No judges completed all assigned submissions. Cannot proceed with tallying.");
-                throw new Exception("Cannot tally votes: No judges completed all assigned submissions. Tallying requires complete judge evaluations for fair competition.");
+                _logger.LogWarning($"⚠️ Disqualified {incompleteJudgesDisqualified} submissions from judges who didn't complete their assignments");
             }
 
-            _logger.LogInformation($"📊 Using judgments from {completeJudges.Count} complete judges for tallying");
+            // PHASE 2: FAIR SCORING SYSTEM
+            // Calculate Round1Score for ALL submissions (including those with no judgments)
+            _logger.LogInformation($"📊 Phase 2: Calculating fair Round1 scores for all submissions");
 
-            // Tally votes for each submission by group
-            // First, get all groups
-            var groups = await _submissionGroupRepository.GetGroupCountByCompetitionIdAsync(competitionId);
-            var advancedCount = 0;
+            await CalculateFairRound1ScoresAsync(competitionId);
 
-            // Process each group
-            for (int groupNumber = 1; groupNumber <= groups; groupNumber++)
-            {
-                // Get all submissions in this group
-                var submissionGroups = await _submissionGroupRepository.GetByCompetitionAndGroupAsync(
-                    competitionId, groupNumber);
+            // PHASE 3: VOTE COUNTING AND RANKING
+            // Calculate vote counts and rankings based on judgment data
+            _logger.LogInformation($"🗳️ Phase 3: Processing vote counts and determining rankings");
 
-                // Get all judges for this group (voters assigned to this group)
-                var groupAssignments = await _round1AssignmentRepository.GetByCompetitionAndGroupAsync(
-                    competitionId, groupNumber);
-
-                // Calculate TotalPoints from SubmissionJudgments for each submission
-                foreach (var submissionGroup in submissionGroups)
-                {
-                    // Reset vote counts before recalculating
-                    submissionGroup.FirstPlaceVotes = 0;
-                    submissionGroup.SecondPlaceVotes = 0;
-                    submissionGroup.ThirdPlaceVotes = 0;
-
-                    // BUSINESS RULE: Get only judgments from complete judges for fair competition
-                    var judgments = await _context.SubmissionJudgments
-                        .Where(sj => sj.SubmissionId == submissionGroup.SubmissionId &&
-                                   sj.CompetitionId == competitionId &&
-                                   sj.VotingRound == 1 &&
-                                   sj.IsCompleted == true &&
-                                   sj.OverallScore.HasValue &&
-                                   completeJudges.Contains(sj.JudgeId))  // CRITICAL: Only count complete judges
-                        .ToListAsync();
-
-                    // Calculate total points by summing OverallScore from all judgments
-                    decimal totalPoints = judgments.Sum(j => j.OverallScore.Value);
-
-                    // Update submission group with tallied scores
-                    submissionGroup.TotalPoints = (int)Math.Round(totalPoints);
-
-                    await _submissionGroupRepository.UpdateAsync(submissionGroup);
-
-                    _logger.LogInformation($"Submission {submissionGroup.SubmissionId}: TotalPoints = {submissionGroup.TotalPoints} (from {judgments.Count} complete judge judgments)");
-                }
-
-                // Now determine rankings within the group based on TotalPoints and calculate vote counts
-                var validSubmissions = submissionGroups
-                    .Where(sg => !sg.Submission.IsDisqualified && sg.TotalPoints.HasValue)
-                    .OrderByDescending(sg => sg.TotalPoints)  // Rank by total points from judgments
-                    .ThenBy(sg => sg.SubmissionId)  // Consistent tie-breaking
-                    .ToList();
-
-                // Calculate vote counts based on rankings within each judge's group
-                foreach (var assignment in groupAssignments)
-                {
-                    // FIXED: Get submission IDs for non-disqualified submissions in this group
-                    var eligibleSubmissionIds = submissionGroups
-                        .Where(sg => !sg.Submission.IsDisqualified)
-                        .Select(sg => sg.SubmissionId)
-                        .ToList();
-
-                    _logger.LogDebug($"Judge {assignment.VoterId}: Processing {eligibleSubmissionIds.Count} eligible submissions in group {groupNumber}");
-
-                    // BUSINESS RULE: Only process judgments from complete judges for fair competition
-                    if (!completeJudges.Contains(assignment.VoterId))
-                    {
-                        _logger.LogDebug($"Judge {assignment.VoterId}: SKIPPED - incomplete judge, not counting vote assignments");
-                        continue;
-                    }
-
-                    // Get judgments from this complete judge using simple Contains() operation
-                    var judgeJudgments = await _context.SubmissionJudgments
-                        .Where(sj => sj.JudgeId == assignment.VoterId &&
-                                   sj.CompetitionId == competitionId &&
-                                   sj.VotingRound == 1 &&
-                                   sj.IsCompleted == true &&
-                                   sj.OverallScore.HasValue &&
-                                   eligibleSubmissionIds.Contains(sj.SubmissionId))  // Simple Contains() instead of Any()
-                        .OrderByDescending(sj => sj.OverallScore)  // Rank by judge's scores
-                        .ThenBy(sj => sj.SubmissionId)  // Consistent tie-breaking
-                        .ToListAsync();
-
-                    _logger.LogDebug($"Judge {assignment.VoterId}: Found {judgeJudgments.Count} completed judgments");
-
-                    // Assign 1st, 2nd, 3rd place votes based on judge's rankings
-                    for (int rank = 0; rank < Math.Min(3, judgeJudgments.Count); rank++)
-                    {
-                        var judgment = judgeJudgments[rank];
-                        var submissionGroup = submissionGroups.First(sg => sg.SubmissionId == judgment.SubmissionId);
-
-                        // Increment vote counts based on ranking
-                        switch (rank)
-                        {
-                            case 0: // 1st place
-                                submissionGroup.FirstPlaceVotes = (submissionGroup.FirstPlaceVotes ?? 0) + 1;
-                                _logger.LogDebug($"Judge {assignment.VoterId}: 1st place vote for submission {judgment.SubmissionId} (Score: {judgment.OverallScore})");
-                                break;
-                            case 1: // 2nd place
-                                submissionGroup.SecondPlaceVotes = (submissionGroup.SecondPlaceVotes ?? 0) + 1;
-                                _logger.LogDebug($"Judge {assignment.VoterId}: 2nd place vote for submission {judgment.SubmissionId} (Score: {judgment.OverallScore})");
-                                break;
-                            case 2: // 3rd place
-                                submissionGroup.ThirdPlaceVotes = (submissionGroup.ThirdPlaceVotes ?? 0) + 1;
-                                _logger.LogDebug($"Judge {assignment.VoterId}: 3rd place vote for submission {judgment.SubmissionId} (Score: {judgment.OverallScore})");
-                                break;
-                        }
-                    }
-                }
-
-                // IMPROVED: Batch update all submission groups for this group at once
-                foreach (var submissionGroup in submissionGroups)
-                {
-                    await _submissionGroupRepository.UpdateAsync(submissionGroup);
-                    _logger.LogInformation($"Updated SubmissionGroup {submissionGroup.SubmissionId}: Points={submissionGroup.TotalPoints}, 1st={submissionGroup.FirstPlaceVotes}, 2nd={submissionGroup.SecondPlaceVotes}, 3rd={submissionGroup.ThirdPlaceVotes}");
-                }
-
-                // Final ranking using complete criteria: TotalPoints, then vote counts for tie-breaking
-                var rankedSubmissions = validSubmissions
-                    .OrderByDescending(sg => sg.TotalPoints)
-                    .ThenByDescending(sg => sg.FirstPlaceVotes ?? 0)  // Most 1st place votes wins tie-break
-                    .ThenByDescending(sg => sg.SecondPlaceVotes ?? 0)
-                    .ThenByDescending(sg => sg.ThirdPlaceVotes ?? 0)
-                    .ToList();
-
-                // Update rank in group
-                for (int i = 0; i < rankedSubmissions.Count; i++)
-                {
-                    var sg = rankedSubmissions[i];
-                    sg.RankInGroup = i + 1;
-                    await _submissionGroupRepository.UpdateAsync(sg);
-
-                    _logger.LogInformation($"Group {groupNumber} Rank {i + 1}: Submission {sg.SubmissionId} " +
-                        $"(Points: {sg.TotalPoints}, 1st: {sg.FirstPlaceVotes}, 2nd: {sg.SecondPlaceVotes}, 3rd: {sg.ThirdPlaceVotes})");
-                }
-
-                // Top 2 submissions in each group advance to Round 2
-                var advancingSubmissions = rankedSubmissions
-                    .Where((sg, index) => index < 2 ||
-                          // Special case: if tied for 2nd place, both advance
-                          (index == 2 &&
-                           sg.TotalPoints == rankedSubmissions[1].TotalPoints &&
-                           (sg.FirstPlaceVotes ?? 0) == (rankedSubmissions[1].FirstPlaceVotes ?? 0) &&
-                           (sg.SecondPlaceVotes ?? 0) == (rankedSubmissions[1].SecondPlaceVotes ?? 0) &&
-                           (sg.ThirdPlaceVotes ?? 0) == (rankedSubmissions[1].ThirdPlaceVotes ?? 0)))
-                    .ToList();
-
-                // Mark submissions as advancing to Round 2
-                foreach (var sg in advancingSubmissions)
-                {
-                    var submission = sg.Submission;
-                    submission.AdvancedToRound2 = true;
-                    submission.IsEligibleForRound2Voting = true;
-                    submission.Round1Score = sg.TotalPoints;
-
-                    await _submissionRepository.UpdateAsync(submission);
-                    advancedCount++;
-
-                    _logger.LogInformation($"Submission {sg.SubmissionId} advanced to Round 2 with score {sg.TotalPoints}");
-                }
-            }
+            var advancedCount = await ProcessVoteCountsAndAdvancementAsync(competitionId);
 
             // Update competition status to VotingRound2Setup
             competition.Status = CompetitionStatus.VotingRound2Setup;
             await _competitionRepository.UpdateAsync(competition);
 
-            _logger.LogInformation($"Competition {competitionId} tallying complete. {advancedCount} submissions advanced to Round 2");
+            _logger.LogInformation($"✅ Competition {competitionId} tallying complete. {advancedCount} submissions advanced to Round 2");
 
             return advancedCount;
         }
 
-        public async Task<int> DisqualifyNonVotersAsync(int competitionId)
+        /// <summary>
+        /// PHASE 1: Disqualify submissions from judges who didn't complete their assignments
+        /// BUSINESS RULE: Judges who don't fulfill their judging duties forfeit their chance to advance
+        /// </summary>
+        private async Task<int> DisqualifyIncompleteJudgesSubmissionsAsync(int competitionId)
         {
-            // Get all non-voters
-            var nonVoters = await _round1AssignmentRepository.GetNonVotersAsync(competitionId);
             var disqualifiedCount = 0;
 
-            // Disqualify submissions from non-voters
-            foreach (var nonVoter in nonVoters)
+            // Get all judge assignments for this competition
+            var allAssignments = await _round1AssignmentRepository.GetByCompetitionIdAsync(competitionId);
+            var incompleteJudges = new List<string>();
+
+            foreach (var assignment in allAssignments)
             {
-                // Get the user's submission
+                // Get all submissions in the judge's assigned group
+                var assignedSubmissions = await _submissionGroupRepository.GetByCompetitionAndGroupAsync(
+                    competitionId, assignment.AssignedGroupNumber);
+
+                var eligibleSubmissionIds = assignedSubmissions
+                    .Where(sg => !sg.Submission.IsDisqualified)
+                    .Select(sg => sg.SubmissionId)
+                    .ToList();
+
+                if (eligibleSubmissionIds.Count == 0)
+                {
+                    _logger.LogInformation($"Judge {assignment.VoterId}: No eligible submissions in assigned group {assignment.AssignedGroupNumber}");
+                    continue;
+                }
+
+                // Check if judge completed judgments for ALL eligible submissions
+                var completedJudgments = await _context.SubmissionJudgments
+                    .Where(sj => sj.JudgeId == assignment.VoterId &&
+                               sj.CompetitionId == competitionId &&
+                               sj.VotingRound == 1 &&
+                               sj.IsCompleted == true &&
+                               sj.OverallScore.HasValue &&
+                               eligibleSubmissionIds.Contains(sj.SubmissionId))
+                    .CountAsync();
+
+                if (completedJudgments < eligibleSubmissionIds.Count)
+                {
+                    incompleteJudges.Add(assignment.VoterId);
+                    _logger.LogWarning($"❌ Judge {assignment.VoterId}: INCOMPLETE - judged {completedJudgments}/{eligibleSubmissionIds.Count} assigned submissions in group {assignment.AssignedGroupNumber}. Will be disqualified.");
+                }
+                else
+                {
+                    _logger.LogInformation($"✅ Judge {assignment.VoterId}: COMPLETE - judged all {completedJudgments} assigned submissions in group {assignment.AssignedGroupNumber}");
+                }
+            }
+
+            // Disqualify submissions from incomplete judges
+            foreach (var incompleteJudgeId in incompleteJudges)
+            {
                 var submissions = await _submissionRepository.GetByCompetitionIdAndUserIdAsync(
-                    competitionId, nonVoter.VoterId);
+                    competitionId, incompleteJudgeId);
 
                 foreach (var submission in submissions)
                 {
                     submission.IsDisqualified = true;
                     submission.AdvancedToRound2 = false;
                     submission.IsEligibleForRound2Voting = false;
-                    submission.Feedback = "Disqualified for not voting in Round 1";
+                    submission.Feedback = "Disqualified: Judge did not complete assigned Round 1 evaluations";
 
                     await _submissionRepository.UpdateAsync(submission);
                     disqualifiedCount++;
+
+                    _logger.LogWarning($"🚫 Disqualified submission {submission.SubmissionId} ({submission.MixTitle}) from incomplete judge {incompleteJudgeId}");
                 }
             }
 
             return disqualifiedCount;
+        }
+
+        /// <summary>
+        /// PHASE 2: Calculate fair Round1 scores for ALL submissions
+        /// Ensures every submission gets a Round1Score value (no NULL values)
+        /// Uses average scoring to handle submissions with different numbers of judgments
+        /// </summary>
+        private async Task CalculateFairRound1ScoresAsync(int competitionId)
+        {
+            // Get ALL submissions for this competition
+            var allSubmissions = await _submissionRepository.GetByCompetitionIdAsync(competitionId);
+
+            // Get complete judges (those who finished all their assignments)
+            var completeJudges = await GetCompleteJudgesForCompetitionAsync(competitionId);
+
+            foreach (var submission in allSubmissions)
+            {
+                if (submission.IsDisqualified)
+                {
+                    // Disqualified submissions get score of 0
+                    submission.Round1Score = 0;
+                    _logger.LogInformation($"Submission {submission.SubmissionId} ({submission.MixTitle}): DISQUALIFIED - Round1Score = 0");
+                }
+                else
+                {
+                    // Get all judgments for this submission from complete judges
+                    var judgments = await _context.SubmissionJudgments
+                        .Where(sj => sj.SubmissionId == submission.SubmissionId &&
+                                   sj.CompetitionId == competitionId &&
+                                   sj.VotingRound == 1 &&
+                                   sj.IsCompleted == true &&
+                                   sj.OverallScore.HasValue &&
+                                   completeJudges.Contains(sj.JudgeId))
+                        .ToListAsync();
+
+                    if (judgments.Count > 0)
+                    {
+                        // Calculate average score for fair comparison (handles different numbers of judgments)
+                        decimal averageScore = judgments.Average(j => j.OverallScore.Value);
+                        submission.Round1Score = Math.Round(averageScore, 2);
+
+                        _logger.LogInformation($"Submission {submission.SubmissionId} ({submission.MixTitle}): {judgments.Count} judgments, Average Score = {submission.Round1Score}");
+                    }
+                    else
+                    {
+                        // No judgments received (perhaps judge didn't complete) - score of 0
+                        submission.Round1Score = 0;
+                        _logger.LogWarning($"Submission {submission.SubmissionId} ({submission.MixTitle}): No completed judgments found - Round1Score = 0");
+                    }
+                }
+
+                await _submissionRepository.UpdateAsync(submission);
+            }
+
+            _logger.LogInformation($"✅ Round1Score calculated for all {allSubmissions.Count()} submissions");
+        }
+
+        /// <summary>
+        /// PHASE 3: Process vote counts and determine Round2 advancement
+        /// Only eligible (non-disqualified) submissions are considered for advancement
+        /// </summary>
+        private async Task<int> ProcessVoteCountsAndAdvancementAsync(int competitionId)
+        {
+            // Get complete judges for fair vote counting
+            var completeJudges = await GetCompleteJudgesForCompetitionAsync(competitionId);
+
+            if (completeJudges.Count == 0)
+            {
+                _logger.LogWarning($"⚠️ Competition {competitionId}: No judges completed all assigned submissions. Cannot proceed with advancement.");
+                throw new Exception("Cannot determine advancement: No judges completed all assigned submissions. Fair competition requires complete judge evaluations.");
+            }
+
+            // Process each group
+            var groups = await _submissionGroupRepository.GetGroupCountByCompetitionIdAsync(competitionId);
+            var advancedCount = 0;
+
+            for (int groupNumber = 1; groupNumber <= groups; groupNumber++)
+            {
+                _logger.LogInformation($"🏆 Processing advancement for Group {groupNumber}");
+
+                // Get all submissions in this group
+                var submissionGroups = await _submissionGroupRepository.GetByCompetitionAndGroupAsync(
+                    competitionId, groupNumber);
+
+                // Reset and calculate vote counts
+                await CalculateVoteCountsForGroup(competitionId, groupNumber, submissionGroups, completeJudges);
+
+                // Determine eligible submissions (non-disqualified)
+                var eligibleSubmissions = submissionGroups
+                    .Where(sg => !sg.Submission.IsDisqualified)
+                    .OrderByDescending(sg => sg.Submission.Round1Score)  // Primary ranking by Round1Score
+                    .ThenByDescending(sg => sg.FirstPlaceVotes ?? 0)     // Tie-break 1: Most 1st place votes
+                    .ThenByDescending(sg => sg.SecondPlaceVotes ?? 0)    // Tie-break 2: Most 2nd place votes
+                    .ThenByDescending(sg => sg.ThirdPlaceVotes ?? 0)     // Tie-break 3: Most 3rd place votes
+                    .ToList();
+
+                // Update rankings
+                for (int i = 0; i < eligibleSubmissions.Count; i++)
+                {
+                    var sg = eligibleSubmissions[i];
+                    sg.RankInGroup = i + 1;
+                    await _submissionGroupRepository.UpdateAsync(sg);
+
+                    _logger.LogInformation($"Group {groupNumber} Rank {i + 1}: {sg.Submission.MixTitle} " +
+                        $"(Score: {sg.Submission.Round1Score}, 1st: {sg.FirstPlaceVotes}, 2nd: {sg.SecondPlaceVotes}, 3rd: {sg.ThirdPlaceVotes})");
+                }
+
+                // UPDATED BUSINESS LOGIC: Set Round 2 voting eligibility for ALL non-disqualified submissions
+                foreach (var sg in eligibleSubmissions)
+                {
+                    var submission = sg.Submission;
+                    // ALL non-disqualified submissions are eligible to vote in Round 2
+                    submission.IsEligibleForRound2Voting = true;
+                    await _submissionRepository.UpdateAsync(submission);
+                }
+
+                // UPDATED BUSINESS LOGIC: Only 1st place winner per group advances to Round 2
+                var advancingSubmissions = eligibleSubmissions.Take(1).ToList();
+
+                foreach (var sg in advancingSubmissions)
+                {
+                    var submission = sg.Submission;
+                    submission.AdvancedToRound2 = true;
+                    // IsEligibleForRound2Voting already set to true above
+                    // Round1Score already set in Phase 2
+
+                    await _submissionRepository.UpdateAsync(submission);
+                    advancedCount++;
+
+                    _logger.LogInformation($"🏆 GROUP {groupNumber} WINNER: {submission.MixTitle} advanced to Round 2 with score {submission.Round1Score}");
+                }
+
+                // Mark non-advancing eligible submissions (all except 1st place)
+                foreach (var sg in eligibleSubmissions.Skip(1))
+                {
+                    var submission = sg.Submission;
+                    submission.AdvancedToRound2 = false;
+                    // IsEligibleForRound2Voting remains true (set above) - they can vote in Round 2
+                    // Round1Score already set in Phase 2
+
+                    await _submissionRepository.UpdateAsync(submission);
+                    _logger.LogInformation($"📉 {submission.MixTitle} eliminated (only 1st place advances) but eligible for Round 2 voting - Score: {submission.Round1Score}");
+                }
+            }
+
+            return advancedCount;
+        }
+
+        /// <summary>
+        /// Calculate vote counts for a specific group based on judge rankings
+        /// </summary>
+        private async Task CalculateVoteCountsForGroup(int competitionId, int groupNumber,
+            IEnumerable<SubmissionGroup> submissionGroups, List<string> completeJudges)
+        {
+            // Reset vote counts
+            foreach (var sg in submissionGroups)
+            {
+                sg.FirstPlaceVotes = 0;
+                sg.SecondPlaceVotes = 0;
+                sg.ThirdPlaceVotes = 0;
+            }
+
+            // Get judges assigned to this group
+            var groupAssignments = await _round1AssignmentRepository.GetByCompetitionAndGroupAsync(
+                competitionId, groupNumber);
+
+            foreach (var assignment in groupAssignments)
+            {
+                // Only process complete judges
+                if (!completeJudges.Contains(assignment.VoterId))
+                {
+                    _logger.LogDebug($"Judge {assignment.VoterId}: SKIPPED - incomplete judge");
+                    continue;
+                }
+
+                // Get eligible submission IDs for this group
+                var eligibleSubmissionIds = submissionGroups
+                    .Where(sg => !sg.Submission.IsDisqualified)
+                    .Select(sg => sg.SubmissionId)
+                    .ToList();
+
+                // Get this judge's rankings
+                var judgeJudgments = await _context.SubmissionJudgments
+                    .Where(sj => sj.JudgeId == assignment.VoterId &&
+                               sj.CompetitionId == competitionId &&
+                               sj.VotingRound == 1 &&
+                               sj.IsCompleted == true &&
+                               sj.OverallScore.HasValue &&
+                               eligibleSubmissionIds.Contains(sj.SubmissionId))
+                    .OrderByDescending(sj => sj.OverallScore)
+                    .ThenBy(sj => sj.SubmissionId)
+                    .ToListAsync();
+
+                // Assign 1st, 2nd, 3rd place votes
+                for (int rank = 0; rank < Math.Min(3, judgeJudgments.Count); rank++)
+                {
+                    var judgment = judgeJudgments[rank];
+                    var submissionGroup = submissionGroups.First(sg => sg.SubmissionId == judgment.SubmissionId);
+
+                    switch (rank)
+                    {
+                        case 0: // 1st place
+                            submissionGroup.FirstPlaceVotes = (submissionGroup.FirstPlaceVotes ?? 0) + 1;
+                            break;
+                        case 1: // 2nd place
+                            submissionGroup.SecondPlaceVotes = (submissionGroup.SecondPlaceVotes ?? 0) + 1;
+                            break;
+                        case 2: // 3rd place
+                            submissionGroup.ThirdPlaceVotes = (submissionGroup.ThirdPlaceVotes ?? 0) + 1;
+                            break;
+                    }
+                }
+            }
+
+            // Update all submission groups with new vote counts
+            foreach (var sg in submissionGroups)
+            {
+                // Update TotalPoints in SubmissionGroups for compatibility
+                if (sg.Submission.Round1Score.HasValue)
+                {
+                    sg.TotalPoints = (int)Math.Round(sg.Submission.Round1Score.Value);
+                }
+
+                await _submissionGroupRepository.UpdateAsync(sg);
+            }
         }
 
         // Helper method to clear existing assignments if we're re-running the setup
@@ -630,6 +749,34 @@ namespace MixWarz.Infrastructure.Services
             _logger.LogInformation($"📊 Competition {competitionId}: {completeJudges.Count}/{allAssignments.Count()} judges completed all assigned judgments and will be counted in tallying");
 
             return completeJudges;
+        }
+
+        public async Task<int> DisqualifyNonVotersAsync(int competitionId)
+        {
+            // Get all non-voters
+            var nonVoters = await _round1AssignmentRepository.GetNonVotersAsync(competitionId);
+            var disqualifiedCount = 0;
+
+            // Disqualify submissions from non-voters
+            foreach (var nonVoter in nonVoters)
+            {
+                // Get the user's submission
+                var submissions = await _submissionRepository.GetByCompetitionIdAndUserIdAsync(
+                    competitionId, nonVoter.VoterId);
+
+                foreach (var submission in submissions)
+                {
+                    submission.IsDisqualified = true;
+                    submission.AdvancedToRound2 = false;
+                    submission.IsEligibleForRound2Voting = false;
+                    submission.Feedback = "Disqualified for not voting in Round 1";
+
+                    await _submissionRepository.UpdateAsync(submission);
+                    disqualifiedCount++;
+                }
+            }
+
+            return disqualifiedCount;
         }
     }
 }

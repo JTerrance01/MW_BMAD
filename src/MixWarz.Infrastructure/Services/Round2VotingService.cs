@@ -101,13 +101,8 @@ namespace MixWarz.Infrastructure.Services
                 return false;
             }
 
-            // User's submission must not have advanced to Round 2 (eliminated in Round 1)
-            if (userSubmissions.Any(s => s.AdvancedToRound2))
-            {
-                return false;
-            }
-
-            // User's submission must not be disqualified
+            // UPDATED BUSINESS LOGIC: User's submission must not be disqualified
+            // All non-disqualified competitors can vote in Round 2 (regardless of advancement)
             if (userSubmissions.Any(s => s.IsDisqualified))
             {
                 return false;

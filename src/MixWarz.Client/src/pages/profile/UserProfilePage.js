@@ -19,8 +19,6 @@ import {
   FaEdit,
   FaCheckCircle,
   FaTimesCircle,
-  FaChartBar,
-  FaHistory,
 } from "react-icons/fa";
 import { createImagePreview } from "../../utils/fileUtils";
 import UserSubmissionsList from "../../components/profile/UserSubmissionsList";
@@ -937,27 +935,7 @@ const UserProfilePage = () => {
                 </Tab>
                 */}
 
-                <Tab eventKey="activity-stats" title={
-                  <>
-                    <FaChartBar className="me-1" />
-                    Activity Stats
-                  </>
-                }>
-                  <p className="text-muted">
-                    User's activity statistics will be displayed here.
-                  </p>
-                </Tab>
 
-                <Tab eventKey="activity-history" title={
-                  <>
-                    <FaHistory className="me-1" />
-                    Activity History
-                  </>
-                }>
-                  <p className="text-muted">
-                    User's activity history will be displayed here.
-                  </p>
-                </Tab>
               </Tabs>
             </Card.Body>
           </Card>

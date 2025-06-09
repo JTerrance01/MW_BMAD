@@ -806,3 +806,731 @@ _logger.LogInformation($"Competition {competitionId} tallying complete. {advance
 ---
 
 **ROUND 2 ADVANCEMENT ISSUE - FULLY RESOLVED** ✅
+
+**ROUND 2 VOTING BUTTON FIX - COMPLETED** ✅
+
+**User Request**: In Round 2 Voting - The "Start Judging" button should route the user to the Round 2 Voting area. Also, after the user submits their votes the "Start Judging" button should be removed.
+
+**ROOT CAUSE IDENTIFIED AND FIXED**:
+
+### **The Problem** 🔍
+
+- **Wrong Button Text**: "Start Judging" button showing during Round 2 voting instead of "Start Voting"
+- **Incorrect Logic**: Button logic was designed for Round 1 judging but appeared in both Round 1 and Round 2
+- **Missing State Management**: No check for `hasVotedRound2` to hide button after voting completion
+- **Poor UX**: Users confused about "judging" vs "voting" terminology in Round 2
+
+### **The Solution** ✅
+
+**ENHANCED BUTTON LOGIC WITH ROUND-SPECIFIC BEHAVIOR**:
+
+- ✅ **Round 1 Logic**: Shows "🎯 Judge Submissions" → "Start Judging" button → "✅ Judging Complete" after completion
+- ✅ **Round 2 Logic**: Shows "🗳️ Vote for Finalists" → "Start Voting" button → "✅ Voting Complete" after completion
+- ✅ **Smart State Detection**: Uses `isVotingRound1`, `isVotingRound2`, `hasVotedRound1`, `hasVotedRound2` for proper state management
+- ✅ **Proper Scroll Targeting**: Added container wrapper for VotingRound2Card with ID `round2-voting` for scroll functionality
+
+**IMPLEMENTATION DETAILS**:
+
+```javascript
+// ENHANCED: Round-specific button logic
+{isVotingRound1 ? (
+  // Round 1 - Judging Interface
+  hasVotedRound1 ? (
+    // Show "✅ Judging Complete"
+  ) : (
+    // Show "🎯 Judge Submissions" with "Start Judging" button
+  )
+) : isVotingRound2 ? (
+  // Round 2 - Voting Interface
+  hasVotedRound2 ? (
+    // Show "✅ Voting Complete"
+  ) : (
+    // Show "🗳️ Vote for Finalists" with "Start Voting" button
+  )
+) : null}
+```
+
+**SCROLL TARGETING ENHANCEMENTS**:
+
+```javascript
+// ENHANCED: Multi-level scroll targeting for Round 2
+const votingElement =
+  document.querySelector(".voting-round2-container") ||
+  document.querySelector('[data-testid="voting-round2"]') ||
+  document.getElementById("round2-voting");
+
+// Added container wrapper for VotingRound2Card
+<div className="voting-round2-container" id="round2-voting">
+  <VotingRound2Card />
+</div>;
+```
+
+### **Key Improvements** ✅
+
+**User Experience**:
+
+- ✅ **Clear Terminology**: "Judge Submissions" for Round 1, "Vote for Finalists" for Round 2
+- ✅ **Appropriate Icons**: 🎯 for judging, 🗳️ for voting
+- ✅ **Completion States**: Button properly hidden after user completes their action
+- ✅ **Smart Routing**: Button scrolls to correct interface (judging vs voting)
+
+**Technical Implementation**:
+
+- ✅ **State-Driven Logic**: Uses existing Redux state (`hasVotedRound1`, `hasVotedRound2`) for completion detection
+- ✅ **Round Detection**: Leverages `isVotingRound1` and `isVotingRound2` from competition status logic
+- ✅ **Scroll Reliability**: Multiple selector fallbacks ensure scroll targeting works
+- ✅ **Container Structure**: Added semantic wrapper around VotingRound2Card
+
+**Code Quality**:
+
+- ✅ **No Code Duplication**: Reused existing state management and status logic
+- ✅ **Maintainable Structure**: Clear conditional logic with round-specific branches
+- ✅ **Enhanced Comments**: Added documentation explaining Round 1 vs Round 2 behavior
+- ✅ **Consistent Styling**: Maintained existing CSS variable system and styling patterns
+
+### **Build Status** ✅
+
+**Frontend**: ✅ Builds successfully (345.11 kB, +214 B minimal increase)
+
+- Only ESLint warnings (no compilation errors)
+- Bundle size increase is minimal for added functionality
+
+**Testing Scenarios** ✅
+
+**Round 1 (Judging)**:
+
+1. **Before Judging**: Shows "🎯 Judge Submissions" with "Start Judging" button
+2. **Button Click**: Scrolls to judging interface for detailed scoring
+3. **After Completion**: Shows "✅ Judging Complete" with next steps message
+
+**Round 2 (Voting)**:
+
+1. **Before Voting**: Shows "🗳️ Vote for Finalists" with "Start Voting" button
+2. **Button Click**: Scrolls to Round 2 voting interface for ranking finalists
+3. **After Completion**: Shows "✅ Voting Complete" with results announcement message
+
+### **Files Modified** ✅
+
+**Frontend Layer**:
+
+- ✅ `src/MixWarz.Client/src/pages/competitions/CompetitionDetailPage.js` - Enhanced button logic with round-specific behavior and scroll targeting
+
+**Key Changes**:
+
+1. **Conditional Logic**: Added `isVotingRound1 ? ... : isVotingRound2 ? ... : null` structure
+2. **Button Text**: "Start Judging" for Round 1, "Start Voting" for Round 2
+3. **Completion States**: Check `hasVotedRound1` for Round 1, `hasVotedRound2` for Round 2
+4. **Scroll Targeting**: Enhanced scroll logic with multiple selector fallbacks
+5. **Container Wrapper**: Added semantic wrapper around VotingRound2Card
+
+**Next Steps for User** ✅
+
+1. **Test Round 1**: Verify "Start Judging" button works correctly and disappears after judging completion
+2. **Test Round 2**: Verify "Start Voting" button appears and scrolls to voting interface
+3. **Test Completion**: Verify button changes to "✅ Voting Complete" after Round 2 votes submitted
+4. **Verify Scroll**: Confirm button properly scrolls to Round 2 voting area
+
+**System State**: ✅ **RESOLVED** - Round 2 voting now has proper "Start Voting" button that routes users to voting area and disappears after completion.
+
+---
+
+**HOW THIS WORKS CLARIFICATION - COMPLETED** ✅
+
+**User Request**: In the CompetitionsDetailPage -> How This Works - I would like to add "Participants must participate in voting to advance to Round 2 Voting"
+
+**SOLUTION IMPLEMENTED**:
+
+### **Enhancement Made** ✅
+
+**Updated "How This Works" Section**:
+
+- ✅ **Location**: CompetitionDetailPage right sidebar, "How This Works" card
+- ✅ **Step Modified**: Step 4 - "Round 2 Voting"
+- ✅ **Clarification Added**: "Participants must participate in voting to advance to Round 2 Voting"
+
+**Updated Text**:
+
+```
+Round 2 Voting: All participants who didn't advance can vote on the finalists.
+Participants must participate in Round 1 voting to advance to Round 2 Voting
+```
+
+### **Business Logic Clarification** ✅
+
+**Important Requirement Highlighted**:
+
+- ✅ **Voting Participation**: Makes it clear that participation in Round 1 voting is required for Round 2 eligibility
+- ✅ **User Education**: Helps users understand the progression requirements
+- ✅ **Clear Expectations**: Sets proper expectations for advancement criteria
+
+### **Implementation Details** ✅
+
+**File Modified**:
+
+- ✅ `src/MixWarz.Client/src/pages/competitions/CompetitionDetailPage.js` - Updated Round 2 Voting step text
+
+**Technical Changes**:
+
+- ✅ Added clarifying sentence to existing step 4 in the ordered list
+- ✅ Maintained existing styling and formatting
+- ✅ Preserved all CSS variables and color schemes
+
+### **Build Status** ✅
+
+**Frontend**: ✅ Builds successfully (345.13 kB, +23 B minimal increase)
+
+- Only ESLint warnings (no compilation errors)
+- Minimal bundle size increase for text addition
+
+### **User Experience Benefits** ✅
+
+**Enhanced Clarity**:
+
+- ✅ **Requirement Visibility**: Users now clearly see voting participation requirement
+- ✅ **Process Understanding**: Better comprehension of competition flow
+- ✅ **Expectation Management**: Clear requirements prevent user confusion
+
+**Consistent Information**:
+
+- ✅ **Step-by-Step Flow**: Logical progression from submission → voting → advancement → Round 2
+- ✅ **Complete Picture**: Users understand both eligibility and advancement criteria
+- ✅ **Clear Rules**: Transparent competition requirements
+
+### **Ready for User** ✅
+
+**Testing Recommendations**:
+
+1. **View Competition Detail Page**: Verify "How This Works" section displays updated text
+2. **Check Text Display**: Confirm clarification appears correctly in Step 4
+3. **Visual Validation**: Ensure styling remains consistent with existing design
+4. **User Understanding**: Verify the requirement is clear and easy to understand
+
+**Expected Results**:
+
+- ✅ Step 4 now clearly states voting participation requirement
+- ✅ Text appears properly formatted and styled
+- ✅ Users better understand Round 2 eligibility criteria
+- ✅ Competition flow is more transparent
+
+**System State**: ✅ **COMPLETED** - "How This Works" section now clearly explains voting participation requirement for Round 2 advancement.
+
+---
+
+**ROUND 2 TALLYING IMPLEMENTATION - COMPLETED** ✅
+
+**User Request**: Regarding the test Competition 21 - I have moved the competition to the Round 2 Tallying phase however there doesn't seem to be a mechanism to trigger tallying round 2 votes. Review the process, plan and implement the needed functionality.
+
+**SOLUTION IMPLEMENTED - FRONTEND ROUND 2 TALLYING UI**:
+
+### **Analysis and Issue Identified** 🔍
+
+**Backend Status**: ✅ **ALREADY COMPLETE**
+
+- ✅ Round2VotingController has `/api/competitions/{competitionId}/round2/tally-votes` endpoint
+- ✅ `TallyRound2VotesAsync` service method handles vote tallying and winner determination
+- ✅ Proper authorization (Admin/Organizer roles) and validation logic
+- ✅ Handles both clear winner and tie scenarios
+
+**Frontend Gap**: ❌ **MISSING UI CONTROLS**
+
+- ❌ No button to trigger Round 2 tallying in AdminCompetitionsPage
+- ❌ No `handleTallyRound2Votes` function to call the backend endpoint
+- ❌ Incorrect button logic showing "Mark as Completed" without actual tallying
+
+### **Implementation Solution** ✅
+
+**NEW FRONTEND FUNCTIONALITY ADDED**:
+
+#### **1. Round 2 Tallying Function** ✅
+
+```javascript
+// NEW: Handle Round 2 vote tallying
+const handleTallyRound2Votes = async (competitionId) => {
+  if (
+    !window.confirm(
+      "Are you sure you want to tally Round 2 votes and determine the competition winner? This action cannot be undone."
+    )
+  ) {
+    return;
+  }
+
+  // Call Round2VotingController tally-votes endpoint
+  const response = await axios.post(
+    `https://localhost:7001/api/competitions/${competitionId}/round2/tally-votes`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (response.data.success) {
+    if (response.data.requiresManualSelection) {
+      // Handle tie scenario
+      alert(
+        `⚖️ ${response.data.message}\n\nThe competition status has been updated to require manual winner selection.`
+      );
+    } else {
+      // Handle clear winner scenario
+      alert(
+        `🏆 ${response.data.message}\n\nThe competition has been completed successfully!`
+      );
+    }
+  }
+};
+```
+
+#### **2. Round 2 Tallying Button** ✅
+
+```javascript
+{
+  competition.status === "VotingRound2Tallying" && (
+    <Button
+      variant="outline-warning"
+      size="sm"
+      onClick={() => handleTallyRound2Votes(competition.id)}
+      title="Tally Round 2 Votes & Determine Winner"
+      disabled={loadingVoting}
+    >
+      <FaTrophy />
+    </Button>
+  );
+}
+```
+
+#### **3. Updated Button Logic** ✅
+
+**Fixed Completion Button Logic**:
+
+- ✅ **Before**: Showed "Mark as Completed" for both Round 1 and Round 2 tallying statuses
+- ✅ **After**: Only shows "Mark as Completed" for Round 1 tallying status
+- ✅ **Round 2**: Now has dedicated "Tally Round 2 Votes" button with trophy icon
+
+### **Technical Implementation Details** ✅
+
+**Enhanced Error Handling**:
+
+- ✅ **Status Code 400**: "Competition not in correct status for Round 2 tallying"
+- ✅ **Status Code 404**: "Competition or Round 2 tallying endpoint not found"
+- ✅ **Status Code 405**: "Method not allowed. Check Round 2 tallying endpoint routing"
+- ✅ **Generic Errors**: Display response message or fallback error text
+
+**Result Processing**:
+
+- ✅ **Clear Winner**: Shows trophy emoji 🏆 and "competition completed successfully" message
+- ✅ **Tie Scenario**: Shows scale emoji ⚖️ and "requires manual winner selection" message
+- ✅ **UI Refresh**: Automatically reloads competitions list after successful tallying
+- ✅ **Modal Closure**: Closes voting modal after processing
+
+**User Experience Enhancements**:
+
+- ✅ **Confirmation Dialog**: Prevents accidental tallying with clear warning
+- ✅ **Loading State**: Button disabled during tallying process
+- ✅ **Visual Feedback**: Trophy icon clearly indicates final competition action
+- ✅ **Color Coding**: `outline-warning` variant to distinguish from other actions
+
+### **Admin Interface Button States** ✅
+
+**Competition Status Progression with Correct UI**:
+
+1. **VotingRound1Open**: Shows "Tally Votes & Advance to Round 2" button (🗳️ FaVoteYea)
+2. **VotingRound1Tallying**: Shows "Mark as Completed" button (⏹️ FaStopCircle)
+3. **VotingRound2Setup**: Status transition via existing logic
+4. **VotingRound2Open**: Normal Round 2 voting phase
+5. **VotingRound2Tallying**: Shows "Tally Round 2 Votes & Determine Winner" button (🏆 FaTrophy) - **NEW**
+6. **Completed** or **RequiresManualWinnerSelection**: Shows "View Results" button
+
+### **Files Modified** ✅
+
+**Frontend Layer**:
+
+- ✅ `src/MixWarz.Client/src/pages/admin/AdminCompetitionsPage.js` - Added Round 2 tallying function and button
+
+**Key Changes**:
+
+1. **New Function**: `handleTallyRound2Votes()` - Calls Round2VotingController endpoint
+2. **New Button**: Dedicated Round 2 tallying button for `VotingRound2Tallying` status
+3. **Fixed Logic**: Cleaned up completion button to only show for Round 1 tallying
+4. **Enhanced UX**: Proper confirmation dialogs, error handling, and user feedback
+5. **Icon Import**: FaTrophy already imported and used correctly
+
+### **Build Status** ✅
+
+**Frontend**: ✅ Builds successfully (345.4 kB, +263 B minimal increase)
+
+- Only ESLint warnings (no compilation errors)
+- Minimal bundle size increase for Round 2 tallying functionality
+
+### **Business Logic Flow** ✅
+
+**Round 2 Tallying Process**:
+
+1. **Admin Action**: Admin clicks "Tally Round 2 Votes" button in competitions table
+2. **Confirmation**: System shows confirmation dialog about determining competition winner
+3. **Backend Call**: Frontend calls `/api/competitions/{id}/round2/tally-votes` endpoint
+4. **Vote Processing**: Backend tallies Round 2 votes and determines winner
+5. **Result Handling**:
+   - **Clear Winner**: Competition marked as "Completed", winner announced
+   - **Tie**: Competition marked as "RequiresManualWinnerSelection", manual selection required
+6. **UI Update**: Competitions list refreshed, status updated, appropriate success message shown
+
+### **Testing Scenarios** ✅
+
+**Ready for User Testing**:
+
+1. **Navigate to Admin Competitions**: Access admin interface competitions page
+2. **Locate Competition 21**: Should show "VotingRound2Tallying" status
+3. **Click Trophy Button**: Should see "Tally Round 2 Votes & Determine Winner" button
+4. **Confirm Action**: Click button and confirm in dialog
+5. **Verify Results**: Should see success message and competition status update
+6. **Check Final Status**: Competition should be "Completed" or "RequiresManualWinnerSelection"
+
+**Expected Results**:
+
+- ✅ Round 2 tallying button appears for competitions in "VotingRound2Tallying" status
+- ✅ Button calls correct backend endpoint with proper authorization
+- ✅ Success/error messages displayed appropriately
+- ✅ Competition status updates automatically after tallying
+- ✅ UI refreshes to reflect new competition state
+
+**System State**: ✅ **READY FOR TESTING** - Round 2 tallying functionality fully implemented with proper UI controls, backend integration, and user feedback mechanisms.
+
+---
+
+**HOW THIS WORKS CLARIFICATION - COMPLETED** ✅
+
+**ROUND 2 VOTING BUSINESS LOGIC FIX - COMPLETED** ✅
+
+**User Issue**: Round 2 Voting was submitted incorrectly. Instead of 1st, 2nd, and 3rd as (1,2,3) being entered into the SubmissionVotes Points and calculated correctly. All votes are saved as a 1, thus creating a tie vote. The business logic in SubmitVotes needs to be refactored to fit the correct business logic.
+
+**CRITICAL BUG IDENTIFIED AND FIXED**:
+
+### **The Problem** 🔍
+
+**Database Evidence**: All Round 2 votes showing `Points = 1` and `Rank = 1` instead of proper 1st=3pts, 2nd=2pts, 3rd=1pt
+
+**Root Cause**: Both Round2VotingController and VotingController were using incorrect `RecordRound2VoteAsync` method that:
+
+- ❌ **Always recorded `Rank = 1, Points = 1`** for every vote
+- ❌ **Created artificial ties** instead of proper 1st/2nd/3rd place rankings
+- ❌ **Broke competitive integrity** by making all votes equal
+
+**Wrong Implementation**:
+
+```csharp
+// WRONG: Loop calling RecordRound2VoteAsync for each submission
+for (int i = 0; i < submissionIds.Count; i++)
+{
+    var result = await _round2VotingService.RecordRound2VoteAsync(
+        competitionId, userId, submissionIds[i]);  // Always Rank=1, Points=1
+}
+```
+
+### **The Solution** ✅
+
+**FIXED: Used Existing Correct Business Logic**:
+
+The `ProcessRound2VotesAsync` method already had the correct implementation:
+
+- ✅ **1st Place**: `Rank = 1, Points = 3`
+- ✅ **2nd Place**: `Rank = 2, Points = 2`
+- ✅ **3rd Place**: `Rank = 3, Points = 1`
+
+**Correct Implementation**:
+
+```csharp
+// FIXED: Single call with proper ranking logic
+bool success = await _round2VotingService.ProcessRound2VotesAsync(
+    competitionId,
+    userId,
+    request.FirstPlaceSubmissionId,   // Gets Rank=1, Points=3
+    request.SecondPlaceSubmissionId,  // Gets Rank=2, Points=2
+    request.ThirdPlaceSubmissionId);  // Gets Rank=3, Points=1
+```
+
+### **Controllers Fixed** ✅
+
+**Round2VotingController.cs** - `/api/competitions/{competitionId}/round2/vote`:
+
+- ✅ **Before**: Loop calling `RecordRound2VoteAsync` (all votes = 1 point)
+- ✅ **After**: Single call to `ProcessRound2VotesAsync` (proper 3-2-1 points)
+
+**VotingController.cs** - `/api/competitions/{competitionId}/voting/round2/votes`:
+
+- ✅ **Before**: Loop calling `RecordRound2VoteAsync` (all votes = 1 point)
+- ✅ **After**: Single call to `ProcessRound2VotesAsync` (proper 3-2-1 points)
+
+### **Service Cleanup** ✅
+
+**Removed Problematic Method**:
+
+- ✅ **Deleted**: `RecordRound2VoteAsync` method (incorrect implementation)
+- ✅ **Removed**: Method from `IRound2VotingService` interface
+- ✅ **Added Comment**: Clear documentation about why method was removed
+- ✅ **Zero Code Duplication**: Single correct method (`ProcessRound2VotesAsync`) for all scenarios
+
+### **Business Logic Validation** ✅
+
+**ProcessRound2VotesAsync Implementation** (already correct):
+
+```csharp
+var votes = new List<SubmissionVote>
+{
+    new SubmissionVote  // 1st Place
+    {
+        SubmissionId = firstPlaceSubmissionId,
+        Rank = 1,
+        Points = 3,  // ✅ CORRECT: 1st place = 3 points
+        VotingRound = 2
+    },
+    new SubmissionVote  // 2nd Place
+    {
+        SubmissionId = secondPlaceSubmissionId,
+        Rank = 2,
+        Points = 2,  // ✅ CORRECT: 2nd place = 2 points
+        VotingRound = 2
+    },
+    new SubmissionVote  // 3rd Place
+    {
+        SubmissionId = thirdPlaceSubmissionId,
+        Rank = 3,
+        Points = 1,  // ✅ CORRECT: 3rd place = 1 point
+        VotingRound = 2
+    }
+};
+```
+
+### **Competitive Integrity Restored** ✅
+
+**Fair Competition Logic**:
+
+- ✅ **1st Place Votes**: Worth 3 points each (highest impact)
+- ✅ **2nd Place Votes**: Worth 2 points each (medium impact)
+- ✅ **3rd Place Votes**: Worth 1 point each (lowest impact)
+- ✅ **Tie-Breaking**: Uses proper ranking hierarchy (TotalPoints → FirstPlaceVotes → SecondPlaceVotes → ThirdPlaceVotes)
+- ✅ **Winner Determination**: Based on total weighted score, not artificial ties
+
+**Database Impact**:
+
+- ✅ **New Votes**: Will be recorded with correct Points and Rank values
+- ✅ **Existing Data**: May need to be cleared and re-voted if competition still active
+- ✅ **Tallying**: Will now produce accurate winner determination
+
+### **Files Modified** ✅
+
+**API Layer**:
+
+- ✅ `src/MixWarz.API/Controllers/Round2VotingController.cs` - Fixed SubmitVotes method
+- ✅ `src/MixWarz.API/Controllers/VotingController.cs` - Fixed SubmitRound2Votes method
+
+**Domain Layer**:
+
+- ✅ `src/MixWarz.Domain/Interfaces/IRound2VotingService.cs` - Removed incorrect method signature
+
+**Infrastructure Layer**:
+
+- ✅ `src/MixWarz.Infrastructure/Services/Round2VotingService.cs` - Removed incorrect implementation
+
+### **Impact and Next Steps** ✅
+
+**Immediate Benefits**:
+
+- ✅ **Fair Competition**: Round 2 voting now properly weights 1st/2nd/3rd place choices
+- ✅ **Accurate Results**: Winner determination based on correct point calculations
+- ✅ **Code Quality**: Removed incorrect method, single source of truth for Round 2 voting
+- ✅ **No Duplication**: Clean codebase with one correct implementation
+
+**For Competition 21**:
+
+1. **Clear Existing Round 2 Votes**: Delete current incorrect votes from SubmissionVotes table
+2. **Re-open Voting**: Allow users to re-vote with corrected system
+3. **Test Verification**: Confirm new votes show proper Points (3,2,1) and Rank (1,2,3) values
+4. **Tally Results**: Use existing Round 2 tallying with corrected vote data
+
+**Testing Scenarios**:
+
+- ✅ **New Round 2 Votes**: Should record with Points=3,2,1 and Rank=1,2,3
+- ✅ **Database Verification**: Check SubmissionVotes table shows correct values
+- ✅ **Tallying Logic**: Should produce fair winner based on weighted scores
+- ✅ **No Artificial Ties**: Proper ranking distribution prevents mass ties
+
+**System State**: ✅ **CRITICAL BUG FIXED** - Round 2 voting business logic corrected to ensure fair competition with proper 1st=3pts, 2nd=2pts, 3rd=1pt scoring system.
+
+---
+
+**ROUND 2 TALLYING IMPLEMENTATION - COMPLETED** ✅
+
+**User Request**: Regarding the test Competition 21 - I have moved the competition to the Round 2 Tallying phase however there doesn't seem to be a mechanism to trigger tallying round 2 votes. Review the process, plan and implement the needed functionality.
+
+**SOLUTION IMPLEMENTED - FRONTEND ROUND 2 TALLYING UI**:
+
+### **Analysis and Issue Identified** 🔍
+
+**Backend Status**: ✅ **ALREADY COMPLETE**
+
+- ✅ Round2VotingController has `/api/competitions/{competitionId}/round2/tally-votes` endpoint
+- ✅ `TallyRound2VotesAsync` service method handles vote tallying and winner determination
+- ✅ Proper authorization (Admin/Organizer roles) and validation logic
+- ✅ Handles both clear winner and tie scenarios
+
+**Frontend Gap**: ❌ **MISSING UI CONTROLS**
+
+- ❌ No button to trigger Round 2 tallying in AdminCompetitionsPage
+- ❌ No `handleTallyRound2Votes` function to call the backend endpoint
+- ❌ Incorrect button logic showing "Mark as Completed" without actual tallying
+
+### **Implementation Solution** ✅
+
+**NEW FRONTEND FUNCTIONALITY ADDED**:
+
+#### **1. Round 2 Tallying Function** ✅
+
+```javascript
+// NEW: Handle Round 2 vote tallying
+const handleTallyRound2Votes = async (competitionId) => {
+  if (
+    !window.confirm(
+      "Are you sure you want to tally Round 2 votes and determine the competition winner? This action cannot be undone."
+    )
+  ) {
+    return;
+  }
+
+  // Call Round2VotingController tally-votes endpoint
+  const response = await axios.post(
+    `https://localhost:7001/api/competitions/${competitionId}/round2/tally-votes`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (response.data.success) {
+    if (response.data.requiresManualSelection) {
+      // Handle tie scenario
+      alert(
+        `⚖️ ${response.data.message}\n\nThe competition status has been updated to require manual winner selection.`
+      );
+    } else {
+      // Handle clear winner scenario
+      alert(
+        `🏆 ${response.data.message}\n\nThe competition has been completed successfully!`
+      );
+    }
+  }
+};
+```
+
+#### **2. Round 2 Tallying Button** ✅
+
+```javascript
+{
+  competition.status === "VotingRound2Tallying" && (
+    <Button
+      variant="outline-warning"
+      size="sm"
+      onClick={() => handleTallyRound2Votes(competition.id)}
+      title="Tally Round 2 Votes & Determine Winner"
+      disabled={loadingVoting}
+    >
+      <FaTrophy />
+    </Button>
+  );
+}
+```
+
+#### **3. Updated Button Logic** ✅
+
+**Fixed Completion Button Logic**:
+
+- ✅ **Before**: Showed "Mark as Completed" for both Round 1 and Round 2 tallying statuses
+- ✅ **After**: Only shows "Mark as Completed" for Round 1 tallying status
+- ✅ **Round 2**: Now has dedicated "Tally Round 2 Votes" button with trophy icon
+
+### **Technical Implementation Details** ✅
+
+**Enhanced Error Handling**:
+
+- ✅ **Status Code 400**: "Competition not in correct status for Round 2 tallying"
+- ✅ **Status Code 404**: "Competition or Round 2 tallying endpoint not found"
+- ✅ **Status Code 405**: "Method not allowed. Check Round 2 tallying endpoint routing"
+- ✅ **Generic Errors**: Display response message or fallback error text
+
+**Result Processing**:
+
+- ✅ **Clear Winner**: Shows trophy emoji 🏆 and "competition completed successfully" message
+- ✅ **Tie Scenario**: Shows scale emoji ⚖️ and "requires manual winner selection" message
+- ✅ **UI Refresh**: Automatically reloads competitions list after successful tallying
+- ✅ **Modal Closure**: Closes voting modal after processing
+
+**User Experience Enhancements**:
+
+- ✅ **Confirmation Dialog**: Prevents accidental tallying with clear warning
+- ✅ **Loading State**: Button disabled during tallying process
+- ✅ **Visual Feedback**: Trophy icon clearly indicates final competition action
+- ✅ **Color Coding**: `outline-warning` variant to distinguish from other actions
+
+### **Admin Interface Button States** ✅
+
+**Competition Status Progression with Correct UI**:
+
+1. **VotingRound1Open**: Shows "Tally Votes & Advance to Round 2" button (🗳️ FaVoteYea)
+2. **VotingRound1Tallying**: Shows "Mark as Completed" button (⏹️ FaStopCircle)
+3. **VotingRound2Setup**: Status transition via existing logic
+4. **VotingRound2Open**: Normal Round 2 voting phase
+5. **VotingRound2Tallying**: Shows "Tally Round 2 Votes & Determine Winner" button (🏆 FaTrophy) - **NEW**
+6. **Completed** or **RequiresManualWinnerSelection**: Shows "View Results" button
+
+### **Files Modified** ✅
+
+**Frontend Layer**:
+
+- ✅ `src/MixWarz.Client/src/pages/admin/AdminCompetitionsPage.js` - Added Round 2 tallying function and button
+
+**Key Changes**:
+
+1. **New Function**: `handleTallyRound2Votes()` - Calls Round2VotingController endpoint
+2. **New Button**: Dedicated Round 2 tallying button for `VotingRound2Tallying` status
+3. **Fixed Logic**: Cleaned up completion button to only show for Round 1 tallying
+4. **Enhanced UX**: Proper confirmation dialogs, error handling, and user feedback
+5. **Icon Import**: FaTrophy already imported and used correctly
+
+### **Build Status** ✅
+
+**Frontend**: ✅ Builds successfully (345.4 kB, +263 B minimal increase)
+
+- Only ESLint warnings (no compilation errors)
+- Minimal bundle size increase for Round 2 tallying functionality
+
+### **Business Logic Flow** ✅
+
+**Round 2 Tallying Process**:
+
+1. **Admin Action**: Admin clicks "Tally Round 2 Votes" button in competitions table
+2. **Confirmation**: System shows confirmation dialog about determining competition winner
+3. **Backend Call**: Frontend calls `/api/competitions/{id}/round2/tally-votes` endpoint
+4. **Vote Processing**: Backend tallies Round 2 votes and determines winner
+5. **Result Handling**:
+   - **Clear Winner**: Competition marked as "Completed", winner announced
+   - **Tie**: Competition marked as "RequiresManualWinnerSelection", manual selection required
+6. **UI Update**: Competitions list refreshed, status updated, appropriate success message shown
+
+### **Testing Scenarios** ✅
+
+**Ready for User Testing**:
+
+1. **Navigate to Admin Competitions**: Access admin interface competitions page
+2. **Locate Competition 21**: Should show "VotingRound2Tallying" status
+3. **Click Trophy Button**: Should see "Tally Round 2 Votes & Determine Winner" button
+4. **Confirm Action**: Click button and confirm in dialog
+5. **Verify Results**: Should see success message and competition status update
+6. **Check Final Status**: Competition should be "Completed" or "RequiresManualWinnerSelection"
+
+**Expected Results**:
+
+- ✅ Round 2 tallying button appears for competitions in "VotingRound2Tallying" status
+- ✅ Button calls correct backend endpoint with proper authorization
+- ✅ Success/error messages displayed appropriately
+- ✅ Competition status updates automatically after tallying
+- ✅ UI refreshes to reflect new competition state
+
+**System State**: ✅ **READY FOR TESTING** - Round 2 tallying functionality fully implemented with proper UI controls, backend integration, and user feedback mechanisms.
+
+---
+
+**HOW THIS WORKS CLARIFICATION - COMPLETED** ✅

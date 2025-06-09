@@ -38,6 +38,7 @@ import {
   FaVoteYea,
   FaCogs,
   FaUser,
+  FaTrophy,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { Editor } from "@tinymce/tinymce-react";
@@ -1049,6 +1050,54 @@ const AdminCompetitionsPage = () => {
         alert(`❌ Error: Method not allowed. This indicates a routing issue.`);
       } else {
         alert(`❌ Error tallying votes: ${error.response?.data?.message || error.message}`);
+      }
+    } finally {
+      setLoadingVoting(false);
+    }
+  };
+
+  // NEW: Handle Round 2 vote tallying
+  const handleTallyRound2Votes = async (competitionId) => {
+    if (!window.confirm("Are you sure you want to tally Round 2 votes and determine the competition winner? This action cannot be undone.")) {
+      return;
+    }
+
+    setLoadingVoting(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Call Round2VotingController tally-votes endpoint
+      const response = await axios.post(
+        `https://localhost:7001/api/competitions/${competitionId}/round2/tally-votes`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.data.success) {
+        if (response.data.requiresManualSelection) {
+          // Handle tie scenario - competition moved to RequiresManualWinnerSelection status
+          alert(`⚖️ ${response.data.message}\n\nThe competition status has been updated to require manual winner selection.`);
+        } else {
+          // Handle clear winner scenario - competition completed
+          alert(`🏆 ${response.data.message}\n\nThe competition has been completed successfully!`);
+        }
+        setShowVotingModal(false);
+        await loadCompetitions();
+      }
+    } catch (error) {
+      console.error("Error tallying Round 2 votes:", error);
+      
+      // Enhanced error messaging for Round 2 tallying
+      if (error.response?.status === 400) {
+        alert(`❌ Error: ${error.response.data.message || 'Competition not in correct status for Round 2 tallying'}`);
+      } else if (error.response?.status === 404) {
+        alert(`❌ Error: Competition or Round 2 tallying endpoint not found.`);
+      } else if (error.response?.status === 405) {
+        alert(`❌ Error: Method not allowed. Check Round 2 tallying endpoint routing.`);
+      } else {
+        alert(`❌ Error tallying Round 2 votes: ${error.response?.data?.message || error.message}`);
       }
     } finally {
       setLoadingVoting(false);
@@ -2279,7 +2328,18 @@ const AdminCompetitionsPage = () => {
                         <FaVoteYea />
                       </Button>
                     )}
-                    {(competition.status === "VotingRound1Tallying" || competition.status === "VotingRound2Tallying") && (
+                    {competition.status === "VotingRound2Tallying" && (
+                      <Button
+                        variant="outline-warning"
+                        size="sm"
+                        onClick={() => handleTallyRound2Votes(competition.id)}
+                        title="Tally Round 2 Votes & Determine Winner"
+                        disabled={loadingVoting}
+                      >
+                        <FaTrophy />
+                      </Button>
+                    )}
+                    {competition.status === "VotingRound1Tallying" && (
                       <Button
                         variant="outline-secondary"
                         size="sm"

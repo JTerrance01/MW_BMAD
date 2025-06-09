@@ -23,10 +23,12 @@ import {
   FaTrash,
   FaEye,
   FaFilter,
-  FaSort
+  FaSort,
+  FaChartBar
 } from "react-icons/fa";
 import { getUserSubmissions, deleteUserSubmission } from "../../store/competitionSlice";
 import SimpleAudioPlayer from "../competitions/SimpleAudioPlayer";
+import SubmissionScoreBreakdownModal from "./SubmissionScoreBreakdownModal";
 
 const UserSubmissionsList = ({ isCurrentUser = true }) => {
   const dispatch = useDispatch();
@@ -48,6 +50,8 @@ const UserSubmissionsList = ({ isCurrentUser = true }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState(null);
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  const [selectedSubmissionForScores, setSelectedSubmissionForScores] = useState(null);
 
   // Load submissions on component mount
   useEffect(() => {
@@ -104,6 +108,16 @@ const UserSubmissionsList = ({ isCurrentUser = true }) => {
     }
   };
 
+  const handleViewScoreBreakdown = (submission) => {
+    setSelectedSubmissionForScores(submission);
+    setShowScoreBreakdown(true);
+  };
+
+  const handleCloseScoreBreakdown = () => {
+    setShowScoreBreakdown(false);
+    setSelectedSubmissionForScores(null);
+  };
+
   const getSubmissionStatusBadge = (status) => {
     const statusConfig = {
       Submitted: { variant: "info", text: "Submitted" },
@@ -137,6 +151,23 @@ const UserSubmissionsList = ({ isCurrentUser = true }) => {
       hour: "2-digit",
       minute: "2-digit"
     });
+  };
+
+  const isScoreBreakdownAvailable = (submission) => {
+    // Score breakdown is available if Round 1 voting has been completed
+    // This is indicated by competition status being beyond VotingRound1Open
+    const statusesWithScoreBreakdown = [
+      'VotingRound1Tallying',
+      'VotingRound2Setup', 
+      'VotingRound2Open',
+      'VotingRound2Tallying',
+      'Completed',
+      'RequiresManualWinnerSelection'
+    ];
+    
+    // FIXED: Remove overly restrictive score check - let backend handle validation
+    // The backend already checks for proper authorization and data availability
+    return statusesWithScoreBreakdown.includes(submission.competitionStatus);
   };
 
   if (loadingUserSubmissions && userSubmissions.length === 0) {
@@ -338,13 +369,25 @@ const UserSubmissionsList = ({ isCurrentUser = true }) => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="d-flex gap-2">
+                  <div className="d-flex gap-2 flex-wrap">
                     <Link to={`/competitions/${submission.competitionId}`}>
                       <Button variant="outline-primary" size="sm">
                         <FaEye className="me-1" />
                         View Competition
                       </Button>
                     </Link>
+                    
+                    {isCurrentUser && isScoreBreakdownAvailable(submission) && (
+                      <Button 
+                        variant="outline-info" 
+                        size="sm"
+                        onClick={() => handleViewScoreBreakdown(submission)}
+                        title="View detailed score breakdown with criteria and judges' comments"
+                      >
+                        <FaChartBar className="me-1" />
+                        Score Breakdown
+                      </Button>
+                    )}
                     
                     {isCurrentUser && submission.canDelete && (
                       <Button 
@@ -460,6 +503,15 @@ const UserSubmissionsList = ({ isCurrentUser = true }) => {
           </div>
         </div>
       )}
+
+      {/* Score Breakdown Modal */}
+      <SubmissionScoreBreakdownModal
+        show={showScoreBreakdown}
+        onHide={handleCloseScoreBreakdown}
+        competitionId={selectedSubmissionForScores?.competitionId}
+        submissionId={selectedSubmissionForScores?.submissionId}
+        submissionTitle={selectedSubmissionForScores?.mixTitle}
+      />
     </div>
   );
 };

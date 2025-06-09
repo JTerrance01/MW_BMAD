@@ -3,10 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MixWarz.Domain.Entities;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
 
 namespace MixWarz.API.Controllers
 {
@@ -112,29 +109,13 @@ namespace MixWarz.API.Controllers
                 return Unauthorized();
             }
 
-            // Convert the three individual votes into a list of submission IDs
-            var submissionIds = new List<int> {
+            // FIXED: Use ProcessRound2VotesAsync with proper 1st=3pts, 2nd=2pts, 3rd=1pt business logic
+            bool success = await _round2VotingService.ProcessRound2VotesAsync(
+                competitionId,
+                userId,
                 request.FirstPlaceSubmissionId,
                 request.SecondPlaceSubmissionId,
-                request.ThirdPlaceSubmissionId
-            };
-
-            // Record votes for each submission with appropriate weights
-            bool success = true;
-            for (int i = 0; i < submissionIds.Count; i++)
-            {
-                // Record vote for this submission
-                var result = await _round2VotingService.RecordRound2VoteAsync(
-                    competitionId,
-                    userId,
-                    submissionIds[i]);
-
-                if (!result)
-                {
-                    success = false;
-                    break;
-                }
-            }
+                request.ThirdPlaceSubmissionId);
 
             if (success)
             {

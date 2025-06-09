@@ -7,6 +7,7 @@ using MixWarz.Application.Features.Submissions.Commands.DeleteSubmission;
 using MixWarz.Application.Features.Submissions.Commands.JudgeSubmission;
 using MixWarz.Application.Features.Submissions.Queries.GetSubmissionsList;
 using MixWarz.Application.Features.Submissions.Queries.GetUserSubmission;
+using MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBreakdown;
 using MixWarz.Domain.Enums;
 
 namespace MixWarz.API.Controllers
@@ -20,6 +21,47 @@ namespace MixWarz.API.Controllers
         public SubmissionsController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        [HttpGet("{submissionId}/score-breakdown")]
+        [Authorize]
+        public async Task<ActionResult<GetSubmissionScoreBreakdownResponse>> GetSubmissionScoreBreakdown(
+            int competitionId,
+            int submissionId)
+        {
+            try
+            {
+                // Get the current user's ID from claims
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst("userId")?.Value
+                           ?? User.FindFirst("sub")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var query = new GetSubmissionScoreBreakdownQuery
+                {
+                    SubmissionId = submissionId,
+                    UserId = userId
+                };
+
+                var result = await _mediator.Send(query);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (ApplicationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
         }
 
         [HttpGet("my-submission")]

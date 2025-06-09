@@ -907,13 +907,15 @@ const CompetitionDetailPage = () => {
               )}
 
               {isVotingRound2 && (
-                <VotingRound2Card
-                  competitionId={id}
-                  advancedSubmissions={round2Submissions}
-                  hasVoted={hasVotedRound2}
-                  votingDeadline={votingDeadline}
-                  isEligibleVoter={isEligibleForRound2Voting}
-                />
+                <div className="voting-round2-container" id="round2-voting">
+                  <VotingRound2Card
+                    competitionId={id}
+                    advancedSubmissions={round2Submissions}
+                    hasVoted={hasVotedRound2}
+                    votingDeadline={votingDeadline}
+                    isEligibleVoter={isEligibleForRound2Voting}
+                  />
+                </div>
               )}
             </>
           )}
@@ -942,7 +944,7 @@ const CompetitionDetailPage = () => {
         </Col>
 
         <Col lg={4}>
-          {/* Judging Interface Button - Show during voting rounds */}
+          {/* Judging/Voting Interface Button - Show during voting rounds */}
           {showVotingComponents && (
             <Card
               className="border-0 shadow-sm mb-4"
@@ -952,60 +954,125 @@ const CompetitionDetailPage = () => {
               }}
             >
               <Card.Body className="text-center py-4">
-                {hasVotedRound1 ? (
-                  <>
-                    <h5 className="mb-3" style={{ color: "var(--accent-secondary)" }}>
-                      ✅ Judging Complete
-                    </h5>
-                    <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
-                      Thank you for completing your judging! Your scores and feedback have been submitted.
-                    </p>
-                    <div 
-                      className="px-4 py-2 rounded"
-                      style={{
-                        backgroundColor: "var(--bg-tertiary)",
-                        borderLeft: "4px solid var(--accent-secondary)",
-                        color: "var(--text-primary)"
-                      }}
-                    >
-                      <small>
-                        <strong>What's Next:</strong> Wait for all judging to complete, then Round 2 voting will begin.
-                      </small>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h5 className="mb-3" style={{ color: "var(--accent-primary)" }}>
-                      🎯 Judge Submissions
-                    </h5>
-                    <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
-                      Listen to anonymous submissions and provide detailed scoring and feedback
-                    </p>
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      onClick={() => {
-                        setSelectedSubmissionForJudging(null);
-                        setUseJudgingInterface(true);
-                        // Scroll to judging interface
-                        setTimeout(() => {
-                          const judgingElement = document.querySelector('.judging-interface-container');
-                          if (judgingElement) {
-                            judgingElement.scrollIntoView({ behavior: 'smooth' });
-                          }
-                        }, 100);
-                      }}
-                      className="px-4 py-2"
-                      style={{
-                        backgroundColor: "var(--accent-primary)",
-                        borderColor: "var(--accent-primary)",
-                        fontWeight: "600"
-                      }}
-                    >
-                      Start Judging
-                    </Button>
-                  </>
-                )}
+                {isVotingRound1 ? (
+                  // Round 1 - Judging Interface
+                  hasVotedRound1 ? (
+                    <>
+                      <h5 className="mb-3" style={{ color: "var(--accent-secondary)" }}>
+                        ✅ Judging Complete
+                      </h5>
+                      <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
+                        Thank you for completing your judging! Your scores and feedback have been submitted.
+                      </p>
+                      <div 
+                        className="px-4 py-2 rounded"
+                        style={{
+                          backgroundColor: "var(--bg-tertiary)",
+                          borderLeft: "4px solid var(--accent-secondary)",
+                          color: "var(--text-primary)"
+                        }}
+                      >
+                        <small>
+                          <strong>What's Next:</strong> Wait for all judging to complete, then Round 2 voting will begin.
+                        </small>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h5 className="mb-3" style={{ color: "var(--accent-primary)" }}>
+                        🎯 Judge Submissions
+                      </h5>
+                      <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
+                        Listen to anonymous submissions and provide detailed scoring and feedback
+                      </p>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={() => {
+                          setSelectedSubmissionForJudging(null);
+                          setUseJudgingInterface(true);
+                          // Scroll to judging interface
+                          setTimeout(() => {
+                            const judgingElement = document.querySelector('.judging-interface-container');
+                            if (judgingElement) {
+                              judgingElement.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }, 100);
+                        }}
+                        className="px-4 py-2"
+                        style={{
+                          backgroundColor: "var(--accent-primary)",
+                          borderColor: "var(--accent-primary)",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Start Judging
+                      </Button>
+                    </>
+                  )
+                ) : isVotingRound2 ? (
+                  // Round 2 - Voting Interface
+                  hasVotedRound2 ? (
+                    <>
+                      <h5 className="mb-3" style={{ color: "var(--accent-secondary)" }}>
+                        ✅ Voting Complete
+                      </h5>
+                      <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
+                        Thank you for voting! Your Round 2 votes have been submitted successfully.
+                      </p>
+                      <div 
+                        className="px-4 py-2 rounded"
+                        style={{
+                          backgroundColor: "var(--bg-tertiary)",
+                          borderLeft: "4px solid var(--accent-secondary)",
+                          color: "var(--text-primary)"
+                        }}
+                      >
+                        <small>
+                          <strong>What's Next:</strong> Results will be announced once voting closes.
+                        </small>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h5 className="mb-3" style={{ color: "var(--accent-primary)" }}>
+                        🗳️ Vote for Finalists
+                      </h5>
+                      <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
+                        Listen to the finalist submissions and rank your top 3 favorites
+                      </p>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={() => {
+                          // Scroll to Round 2 voting interface
+                          setTimeout(() => {
+                            const votingElement = document.querySelector('.voting-round2-container') || 
+                                                 document.querySelector('[data-testid="voting-round2"]') ||
+                                                 document.getElementById('round2-voting');
+                            if (votingElement) {
+                              votingElement.scrollIntoView({ behavior: 'smooth' });
+                            } else {
+                              // Fallback: scroll to main voting section
+                              const mainVotingElement = document.querySelector('.voting-interface-container');
+                              if (mainVotingElement) {
+                                mainVotingElement.scrollIntoView({ behavior: 'smooth' });
+                              }
+                            }
+                          }, 100);
+                        }}
+                        className="px-4 py-2"
+                        style={{
+                          backgroundColor: "var(--accent-primary)",
+                          borderColor: "var(--accent-primary)",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Start Voting
+                      </Button>
+                    </>
+                  )
+                ) : null}
               </Card.Body>
             </Card>
           )}
@@ -1062,7 +1129,8 @@ const CompetitionDetailPage = () => {
                   <strong style={{ color: "var(--accent-primary)" }}>
                     Round 2 Voting:
                   </strong>{" "}
-                  All participants who didn't advance can vote on the finalists{" "}
+                  All participants who didn't advance can vote on the finalists.
+                  Participants must participate in Round 1 voting to advance to Round 2 Voting{" "}
                 </li>{" "}
                 <li>
                   {" "}

@@ -24,21 +24,19 @@ namespace MixWarz.Domain.Interfaces
         Task<IEnumerable<Submission>> GetRound2SubmissionsAsync(int competitionId);
 
         /// <summary>
-        /// Checks if a user is eligible to vote in Round 2
+        /// Check if a user is eligible to vote in Round 2
         /// </summary>
-        /// <param name="competitionId">Competition ID</param>
-        /// <param name="userId">User ID</param>
-        /// <returns>True if the user can vote</returns>
         Task<bool> IsUserEligibleForRound2VotingAsync(int competitionId, string userId);
 
         /// <summary>
-        /// Records a user's vote for Round 2
+        /// Process Round 2 votes with proper ranking (1st=3pts, 2nd=2pts, 3rd=1pt)
         /// </summary>
-        /// <param name="competitionId">Competition ID</param>
-        /// <param name="voterId">Voter's user ID</param>
-        /// <param name="submissionId">Submission ID voted for</param>
-        /// <returns>True if vote was recorded successfully</returns>
-        Task<bool> RecordRound2VoteAsync(int competitionId, string voterId, int submissionId);
+        Task<bool> ProcessRound2VotesAsync(
+            int competitionId,
+            string userId,
+            int firstPlaceSubmissionId,
+            int secondPlaceSubmissionId,
+            int thirdPlaceSubmissionId);
 
         /// <summary>
         /// Records picks from the Song Creator for Round 2

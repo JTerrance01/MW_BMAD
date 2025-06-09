@@ -133,6 +133,22 @@ const competitionService = {
   },
 
   /**
+   * Get submission score breakdown for a user's submission
+   * @param {string} competitionId - Competition ID
+   * @param {string} submissionId - Submission ID
+   * @returns {Promise<Object>} Score breakdown data
+   */
+  getSubmissionScoreBreakdown: async (competitionId, submissionId) => {
+    return apiService.get(
+      `/api/competitions/${competitionId}/submissions/${submissionId}/score-breakdown`,
+      {},
+      {
+        errorContext: `Submission Score Breakdown (${submissionId})`,
+      }
+    );
+  },
+
+  /**
    * Update competition status (for admins)
    * @param {string} competitionId - Competition ID
    * @param {string} status - New status

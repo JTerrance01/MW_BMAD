@@ -319,9 +319,33 @@ namespace MixWarz.API.Controllers
                 // Calculate voting deadline
                 var votingDeadline = competition.EndDate;
 
+                // Map submissions to DTO format to avoid circular reference issues
+                var submissionDtos = new List<SubmissionForVotingDto>();
+
+                foreach (var s in submissions)
+                {
+                    // Generate a pre-signed URL for accessing the audio file (valid for 1 hour)
+                    var audioUrl = await FileUrlHelper.ResolveFileUrlAsync(
+                        _fileStorageService,
+                        s.AudioFilePath ?? "",
+                        TimeSpan.FromHours(1));
+
+                    var dto = new SubmissionForVotingDto
+                    {
+                        Id = s.SubmissionId,
+                        Title = s.MixTitle ?? $"Submission {s.SubmissionId}",
+                        Description = s.MixDescription ?? "",
+                        AudioUrl = audioUrl, // Use the pre-signed URL
+                        Number = s.SubmissionId,
+                        SubmittedAt = s.SubmissionDate
+                    };
+
+                    submissionDtos.Add(dto);
+                }
+
                 var response = new Round2VotingSubmissionsResponse
                 {
-                    Submissions = submissions.ToList(),
+                    Submissions = submissionDtos,
                     HasVoted = hasVoted,
                     IsEligible = isEligible,
                     VotingDeadline = votingDeadline
@@ -378,23 +402,13 @@ namespace MixWarz.API.Controllers
                     return Forbid("User is not eligible for Round 2 voting");
                 }
 
-                // Submit votes for each submission using existing service
-                var submissionIds = new List<int> { firstPlaceId.Value, secondPlaceId.Value, thirdPlaceId.Value };
-                bool success = true;
-
-                for (int i = 0; i < submissionIds.Count; i++)
-                {
-                    var result = await _round2VotingService.RecordRound2VoteAsync(
-                        competitionId,
-                        userId,
-                        submissionIds[i]);
-
-                    if (!result)
-                    {
-                        success = false;
-                        break;
-                    }
-                }
+                // FIXED: Use ProcessRound2VotesAsync with proper 1st=3pts, 2nd=2pts, 3rd=1pt business logic
+                bool success = await _round2VotingService.ProcessRound2VotesAsync(
+                    competitionId,
+                    userId,
+                    firstPlaceId.Value,
+                    secondPlaceId.Value,
+                    thirdPlaceId.Value);
 
                 if (success)
                 {
@@ -633,7 +647,7 @@ namespace MixWarz.API.Controllers
     public class Round2VotingSubmissionsResponse
     {
         [JsonPropertyName("submissions")]
-        public List<Submission> Submissions { get; set; } = new List<Submission>();
+        public List<SubmissionForVotingDto> Submissions { get; set; } = new List<SubmissionForVotingDto>();
 
         [JsonPropertyName("hasVoted")]
         public bool HasVoted { get; set; }

@@ -35,6 +35,9 @@ namespace MixWarz.Domain.Entities
         [Required]
         public DateTime CreationDate { get; set; } = DateTime.UtcNow;
 
+        // Date when competition is actually completed (Round 2 tallying finished)
+        public DateTime? CompletedDate { get; set; }
+
         public string? CoverImageUrl { get; set; }
 
         public string? MultitrackZipUrl { get; set; }

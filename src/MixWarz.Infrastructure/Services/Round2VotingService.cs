@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MixWarz.Domain.Entities;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
@@ -15,17 +16,20 @@ namespace MixWarz.Infrastructure.Services
         private readonly ISubmissionRepository _submissionRepository;
         private readonly ISubmissionVoteRepository _submissionVoteRepository;
         private readonly ISongCreatorPickRepository _songCreatorPickRepository;
+        private readonly ILogger<Round2VotingService> _logger;
 
         public Round2VotingService(
             ICompetitionRepository competitionRepository,
             ISubmissionRepository submissionRepository,
             ISubmissionVoteRepository submissionVoteRepository,
-            ISongCreatorPickRepository songCreatorPickRepository)
+            ISongCreatorPickRepository songCreatorPickRepository,
+            ILogger<Round2VotingService> logger)
         {
             _competitionRepository = competitionRepository;
             _submissionRepository = submissionRepository;
             _submissionVoteRepository = submissionVoteRepository;
             _songCreatorPickRepository = songCreatorPickRepository;
+            _logger = logger;
         }
 
         public async Task<int> SetupRound2VotingAsync(int competitionId)
@@ -118,44 +122,8 @@ namespace MixWarz.Infrastructure.Services
             return true;
         }
 
-        public async Task<bool> RecordRound2VoteAsync(int competitionId, string voterId, int submissionId)
-        {
-            // Verify competition exists and is in correct status
-            var competition = await _competitionRepository.GetByIdAsync(competitionId);
-            if (competition == null || competition.Status != CompetitionStatus.VotingRound2Open)
-            {
-                return false;
-            }
-
-            // Verify user is eligible to vote
-            if (!await IsUserEligibleForRound2VotingAsync(competitionId, voterId))
-            {
-                return false;
-            }
-
-            // Verify submission exists and advanced to Round 2
-            var advancedSubmissions = await GetRound2SubmissionsAsync(competitionId);
-            if (!advancedSubmissions.Any(s => s.SubmissionId == submissionId))
-            {
-                return false;
-            }
-
-            // Create vote record with proper point value
-            var vote = new SubmissionVote
-            {
-                CompetitionId = competitionId,
-                SubmissionId = submissionId,
-                VoterId = voterId,
-                Rank = 1,
-                Points = 1, // Simple vote = 1 point
-                VotingRound = 2,
-                VoteTime = DateTimeOffset.UtcNow
-            };
-
-            // Save vote
-            await _submissionVoteRepository.CreateAsync(vote);
-            return true;
-        }
+        // REMOVED: RecordRound2VoteAsync method was incorrect (always recorded Rank=1, Points=1)
+        // Use ProcessRound2VotesAsync instead for proper 1st=3pts, 2nd=2pts, 3rd=1pt business logic
 
         // Keep this method for backward compatibility
         public async Task<bool> ProcessRound2VotesAsync(
@@ -255,8 +223,15 @@ namespace MixWarz.Infrastructure.Services
             // Get all advanced submissions
             var advancedSubmissions = await GetRound2SubmissionsAsync(competitionId);
 
-            // Create dictionary to store submission scores
-            var submissionScores = new Dictionary<int, (int TotalPoints, int FirstPlaceVotes, int SecondPlaceVotes, int ThirdPlaceVotes)>();
+            // Create dictionary to store submission scores and details
+            var submissionData = new Dictionary<int, (
+                int TotalPoints,
+                int FirstPlaceVotes,
+                int SecondPlaceVotes,
+                int ThirdPlaceVotes,
+                decimal Round1Score,
+                decimal CombinedScore,
+                Submission Submission)>();
 
             // Tally votes for each submission
             foreach (var submission in advancedSubmissions)
@@ -269,60 +244,189 @@ namespace MixWarz.Infrastructure.Services
                 int secondPlaceVotes = votes.Count(v => v.Rank == 2);
                 int thirdPlaceVotes = votes.Count(v => v.Rank == 3);
 
-                // Store scores
-                submissionScores[submission.SubmissionId] = (totalPoints, firstPlaceVotes, secondPlaceVotes, thirdPlaceVotes);
+                // Get Round 1 score (use 0 if null)
+                decimal round1Score = submission.Round1Score ?? 0;
 
-                // Update submission with Round 2 score
-                submission.Round2Score = totalPoints;
+                // Calculate combined score (Round1Score + Round2Score)
+                decimal round2Score = totalPoints;
+                decimal combinedScore = round1Score + round2Score;
 
-                // Set final score as Round 2 score (could be modified for future scoring systems)
-                submission.FinalScore = totalPoints;
+                // Store submission data
+                submissionData[submission.SubmissionId] = (
+                    totalPoints,
+                    firstPlaceVotes,
+                    secondPlaceVotes,
+                    thirdPlaceVotes,
+                    round1Score,
+                    combinedScore,
+                    submission);
+
+                // Update submission with Round 2 score and combined final score
+                submission.Round2Score = round2Score;
+                submission.FinalScore = combinedScore;
 
                 await _submissionRepository.UpdateAsync(submission);
+
+                _logger.LogInformation($"Round 2 Tally - Submission {submission.SubmissionId}: " +
+                    $"Round1Score={round1Score}, Round2Score={round2Score}, FinalScore={combinedScore}, " +
+                    $"1st={firstPlaceVotes}, 2nd={secondPlaceVotes}, 3rd={thirdPlaceVotes}");
             }
 
-            // Sort submissions by score for ranking
-            var rankedSubmissions = submissionScores
+            // Sort submissions by Round 2 score first (primary ranking)
+            var rankedByRound2 = submissionData
                 .OrderByDescending(s => s.Value.TotalPoints)
                 .ThenByDescending(s => s.Value.FirstPlaceVotes)
                 .ThenByDescending(s => s.Value.SecondPlaceVotes)
                 .ThenByDescending(s => s.Value.ThirdPlaceVotes)
                 .ToList();
 
-            // Determine if there's a clear winner
-            var potentialWinners = rankedSubmissions.Count > 0 ?
-                rankedSubmissions.Where(s => s.Value.TotalPoints == rankedSubmissions[0].Value.TotalPoints).ToList() :
-                new List<KeyValuePair<int, (int TotalPoints, int FirstPlaceVotes, int SecondPlaceVotes, int ThirdPlaceVotes)>>();
+            // Check for Round 2 ties at the top
+            var topRound2Score = rankedByRound2.FirstOrDefault().Value.TotalPoints;
+            var round2Tied = rankedByRound2.Where(s => s.Value.TotalPoints == topRound2Score).ToList();
 
-            if (potentialWinners.Count == 1)
+            if (round2Tied.Count == 1)
             {
-                // Clear winner by points
-                int winnerId = potentialWinners[0].Key;
+                // Clear winner by Round 2 points alone
+                int winnerId = round2Tied[0].Key;
+                var winner = round2Tied[0].Value.Submission;
+                winner.IsWinner = true;
+                winner.FinalRank = 1;
+                await _submissionRepository.UpdateAsync(winner);
+
+                // Mark competition as completed and set completion date
+                competition.Status = CompetitionStatus.Completed;
+                competition.CompletedDate = DateTime.UtcNow;
+                await _competitionRepository.UpdateAsync(competition);
+
+                _logger.LogInformation($"Competition {competitionId} winner determined by Round 2 score: " +
+                    $"Submission {winnerId} with {topRound2Score} points");
+
                 return (winnerId, false);
             }
-            else if (potentialWinners.Count > 1)
+            else if (round2Tied.Count > 1)
             {
-                // Try to break tie with first-place votes
-                var winnersWithMostFirstPlaceVotes = potentialWinners
-                    .OrderByDescending(w => w.Value.FirstPlaceVotes)
+                _logger.LogInformation($"Competition {competitionId} has Round 2 tie with {round2Tied.Count} submissions " +
+                    $"at {topRound2Score} points. Using combined score tie-breaking...");
+
+                // Round 2 tie detected - use combined score (Round1 + Round2) for tie-breaking
+                var tieBreakRanked = round2Tied
+                    .OrderByDescending(s => s.Value.CombinedScore)
+                    .ThenByDescending(s => s.Value.FirstPlaceVotes)
+                    .ThenByDescending(s => s.Value.SecondPlaceVotes)
+                    .ThenByDescending(s => s.Value.ThirdPlaceVotes)
                     .ToList();
 
-                if (winnersWithMostFirstPlaceVotes.Count > 0 &&
-                    winnersWithMostFirstPlaceVotes[0].Value.FirstPlaceVotes > winnersWithMostFirstPlaceVotes.Skip(1).FirstOrDefault().Value.FirstPlaceVotes)
+                var topCombinedScore = tieBreakRanked[0].Value.CombinedScore;
+                var combinedScoreTied = tieBreakRanked.Where(s => s.Value.CombinedScore == topCombinedScore).ToList();
+
+                if (combinedScoreTied.Count == 1)
                 {
-                    // Winner determined by first-place votes
-                    int winnerId = winnersWithMostFirstPlaceVotes[0].Key;
+                    // Tie broken by combined score
+                    int winnerId = combinedScoreTied[0].Key;
+                    var winner = combinedScoreTied[0].Value.Submission;
+                    winner.IsWinner = true;
+                    winner.FinalRank = 1;
+                    await _submissionRepository.UpdateAsync(winner);
+
+                    // Mark competition as completed and set completion date
+                    competition.Status = CompetitionStatus.Completed;
+                    competition.CompletedDate = DateTime.UtcNow;
+                    await _competitionRepository.UpdateAsync(competition);
+
+                    _logger.LogInformation($"Competition {competitionId} tie broken by combined score: " +
+                        $"Submission {winnerId} with combined score {topCombinedScore} " +
+                        $"(Round1: {combinedScoreTied[0].Value.Round1Score}, Round2: {combinedScoreTied[0].Value.TotalPoints})");
+
+                    // Set final rankings for all tied submissions
+                    await AssignFinalRankingsAsync(tieBreakRanked, competitionId);
+
                     return (winnerId, false);
                 }
                 else
                 {
-                    // True tie - requires manual selection
-                    return (0, true);
+                    // Still tied even after combined score - try first-place votes
+                    var firstPlaceWinners = combinedScoreTied
+                        .OrderByDescending(s => s.Value.FirstPlaceVotes)
+                        .ToList();
+
+                    if (firstPlaceWinners.Count > 0 &&
+                        firstPlaceWinners[0].Value.FirstPlaceVotes >
+                        firstPlaceWinners.Skip(1).FirstOrDefault().Value.FirstPlaceVotes)
+                    {
+                        // Tie broken by first-place votes
+                        int winnerId = firstPlaceWinners[0].Key;
+                        var winner = firstPlaceWinners[0].Value.Submission;
+                        winner.IsWinner = true;
+                        winner.FinalRank = 1;
+                        await _submissionRepository.UpdateAsync(winner);
+
+                        // Mark competition as completed and set completion date
+                        competition.Status = CompetitionStatus.Completed;
+                        competition.CompletedDate = DateTime.UtcNow;
+                        await _competitionRepository.UpdateAsync(competition);
+
+                        _logger.LogInformation($"Competition {competitionId} tie broken by first-place votes: " +
+                            $"Submission {winnerId} with {firstPlaceWinners[0].Value.FirstPlaceVotes} first-place votes");
+
+                        // Set final rankings for all submissions
+                        await AssignFinalRankingsAsync(tieBreakRanked, competitionId);
+
+                        return (winnerId, false);
+                    }
+                    else
+                    {
+                        // True tie - requires manual selection
+                        _logger.LogWarning($"Competition {competitionId} has unresolvable tie between submissions: " +
+                            string.Join(", ", combinedScoreTied.Select(s => $"{s.Key} (Combined: {s.Value.CombinedScore})")));
+
+                        return (0, true);
+                    }
                 }
             }
 
             // No votes or other issue
+            _logger.LogWarning($"Competition {competitionId} has no valid Round 2 submissions or votes");
             return (0, true);
+        }
+
+        /// <summary>
+        /// Assign final rankings to all submissions based on their combined scores
+        /// </summary>
+        private async Task AssignFinalRankingsAsync(
+            List<KeyValuePair<int, (int TotalPoints, int FirstPlaceVotes, int SecondPlaceVotes, int ThirdPlaceVotes, decimal Round1Score, decimal CombinedScore, Submission Submission)>> rankedSubmissions,
+            int competitionId)
+        {
+            var allSubmissions = await _submissionRepository.GetByCompetitionIdAsync(competitionId);
+            var advancedIds = rankedSubmissions.Select(r => r.Key).ToHashSet();
+
+            // Rank all submissions by their combined score
+            var finalRanking = rankedSubmissions
+                .OrderByDescending(s => s.Value.CombinedScore)
+                .ThenByDescending(s => s.Value.FirstPlaceVotes)
+                .ThenByDescending(s => s.Value.SecondPlaceVotes)
+                .ThenByDescending(s => s.Value.ThirdPlaceVotes)
+                .ToList();
+
+            // Assign final ranks to advanced submissions
+            for (int i = 0; i < finalRanking.Count; i++)
+            {
+                var submission = finalRanking[i].Value.Submission;
+                submission.FinalRank = i + 1;
+                await _submissionRepository.UpdateAsync(submission);
+
+                _logger.LogInformation($"Final Ranking - Position {i + 1}: Submission {submission.SubmissionId} " +
+                    $"(Combined Score: {finalRanking[i].Value.CombinedScore})");
+            }
+
+            // Set final rank for non-advanced submissions (they get ranks after all finalists)
+            var nonAdvancedSubmissions = allSubmissions.Where(s => !advancedIds.Contains(s.SubmissionId)).ToList();
+            int nextRank = finalRanking.Count + 1;
+
+            foreach (var submission in nonAdvancedSubmissions)
+            {
+                submission.FinalRank = nextRank++;
+                await _submissionRepository.UpdateAsync(submission);
+            }
         }
 
         // Keep this method for backward compatibility
@@ -374,8 +478,9 @@ namespace MixWarz.Infrastructure.Services
                 }
             }
 
-            // Update competition status
+            // Update competition status and set completion date
             competition.Status = CompetitionStatus.Completed;
+            competition.CompletedDate = DateTime.UtcNow;
             await _competitionRepository.UpdateAsync(competition);
 
             return true;

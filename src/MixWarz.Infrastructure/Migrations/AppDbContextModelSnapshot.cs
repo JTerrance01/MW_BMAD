@@ -384,6 +384,9 @@ namespace MixWarz.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CompetitionId"));
 
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("CoverImageUrl")
                         .HasColumnType("text");
 

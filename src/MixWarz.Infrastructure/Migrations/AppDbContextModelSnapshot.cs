@@ -417,6 +417,12 @@ namespace MixWarz.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("Round1VotingEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Round2VotingEndDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("RulesText")
                         .IsRequired()
                         .HasColumnType("text");
@@ -544,11 +550,17 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Property<string>("BillingAddress")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsShipped")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("OrderTotal")
                         .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -637,6 +649,9 @@ namespace MixWarz.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsShippable")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Name")
@@ -1005,6 +1020,53 @@ namespace MixWarz.Infrastructure.Migrations
                     b.ToTable("SubmissionVotes");
                 });
 
+            modelBuilder.Entity("MixWarz.Domain.Entities.Subscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CanceledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CurrentPeriodEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CurrentPeriodStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StripeSubscriptionId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("TrialEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "StripeSubscriptionId")
+                        .IsUnique();
+
+                    b.ToTable("Subscriptions");
+                });
+
             modelBuilder.Entity("MixWarz.Domain.Entities.User", b =>
                 {
                     b.Property<string>("Id")
@@ -1068,6 +1130,9 @@ namespace MixWarz.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SecurityStamp")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StripeCustomerId")
                         .HasColumnType("text");
 
                     b.Property<bool>("TwoFactorEnabled")
@@ -1569,6 +1634,17 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Navigation("Submission");
 
                     b.Navigation("Voter");
+                });
+
+            modelBuilder.Entity("MixWarz.Domain.Entities.Subscription", b =>
+                {
+                    b.HasOne("MixWarz.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.UserActivity", b =>

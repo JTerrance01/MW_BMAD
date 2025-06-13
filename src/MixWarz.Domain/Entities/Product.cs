@@ -42,6 +42,7 @@ namespace MixWarz.Domain.Entities
         public ProductStatus Status { get; set; }
         public string? StripeProductId { get; set; }
         public string? StripePriceId { get; set; }
+        public bool IsShippable { get; set; } = false;
 
         public int GenreId { get; set; }
 

@@ -40,22 +40,11 @@ const MainNavbar = () => {
         <Navbar.Toggle aria-controls="navbar-nav" />
         <Navbar.Collapse id="navbar-nav">
           <Nav className="mx-auto">
-            {isAuthenticated ? (
-              <Nav.Link as={Link} to="/competitions" className="mx-2 px-3">
-                Competitions
-              </Nav.Link>
-            ) : (
-              <Nav.Link 
-                as={Link} 
-                to="/login" 
-                className="mx-2 px-3"
-                title="Login required to view competitions"
-              >
-                Competitions <small className="text-muted">(Login Required)</small>
-              </Nav.Link>
-            )}
+            <Nav.Link as={Link} to="/competitions" className="mx-2 px-3">
+              Competitions
+            </Nav.Link>
             <Nav.Link as={Link} to="/products" className="mx-2 px-3">
-              Marketplace
+              Kits and More
             </Nav.Link>
             {/* FUTURE: Community Page - Temporarily disabled
             <Nav.Link as={Link} to="/community" className="mx-2 px-3">

@@ -76,7 +76,7 @@ const Footer = () => {
             </div>
           </Col>
           <Col lg={2} md={6} className="mb-4 mb-md-0">
-            <h6 className="text-uppercase mb-4 fw-bold">Marketplace</h6>
+            <h6 className="text-uppercase mb-4 fw-bold">Kits and More</h6>
             <ul className="list-unstyled">
               <li className="mb-2">
                 <Link to="/products" className="footer-link">

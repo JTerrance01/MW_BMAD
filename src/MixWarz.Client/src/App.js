@@ -5,6 +5,7 @@ import { refreshToken, fetchUserProfile } from "./store/authSlice";
 import { jwtDecode } from "jwt-decode";
 import AppConfig from "./utils/AppConfig";
 import { getRolesFromToken, hasAdminRole } from "./utils/authUtils";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 // Layouts
 import MainLayout from "./components/layouts/MainLayout";
@@ -18,6 +19,8 @@ import ProductsPage from "./pages/products/ProductsPage";
 import ProductDetailPage from "./pages/products/ProductDetailPage";
 import CartPage from "./pages/cart/CartPage";
 import CheckoutPage from "./pages/checkout/CheckoutPage";
+import CheckoutSuccessPage from "./pages/checkout/CheckoutSuccessPage";
+import CheckoutCancelPage from "./pages/checkout/CheckoutCancelPage";
 import OrderConfirmationPage from "./pages/checkout/OrderConfirmationPage";
 import CompetitionsPage from "./pages/competitions/CompetitionsPage";
 import CompetitionDetailPage from "./pages/competitions/CompetitionDetailPage";
@@ -26,6 +29,7 @@ import BlogListPage from "./pages/blog/BlogListPage";
 import BlogArticlePage from "./pages/blog/BlogArticlePage";
 import UserProfilePage from "./pages/profile/UserProfilePage";
 import ProfileSettingsPage from "./pages/profile/ProfileSettingsPage";
+import PricingPage from "./pages/PricingPage";
 
 // Admin Pages
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
@@ -113,6 +117,9 @@ function App() {
     <Fragment>
       {/* Include the AppConfig component for global configurations */}
       <AppConfig />
+      
+      {/* Scroll to top on route changes */}
+      <ScrollToTop />
 
       <Routes>
         {/* Public Routes */}
@@ -120,6 +127,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="pricing" element={<PricingPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/:id" element={<ProductDetailPage />} />
           <Route path="cart" element={<CartPage />} />
@@ -128,21 +136,20 @@ function App() {
             element={<PrivateRoute element={<CheckoutPage />} />}
           />
           <Route
+            path="checkout/success"
+            element={<PrivateRoute element={<CheckoutSuccessPage />} />}
+          />
+          <Route
+            path="checkout/cancel"
+            element={<PrivateRoute element={<CheckoutCancelPage />} />}
+          />
+          <Route
             path="order-confirmation/:id"
             element={<PrivateRoute element={<OrderConfirmationPage />} />}
           />
-          <Route 
-            path="competitions" 
-            element={<PrivateRoute element={<CompetitionsPage />} />} 
-          />
-          <Route 
-            path="competitions/:id" 
-            element={<PrivateRoute element={<CompetitionDetailPage />} />} 
-          />
-          <Route
-            path="competitions/:id/results"
-            element={<PrivateRoute element={<CompetitionResultsPage />} />}
-          />
+          <Route path="competitions" element={<CompetitionsPage />} />
+          <Route path="competitions/:id" element={<CompetitionDetailPage />} />
+          <Route path="competitions/:id/results" element={<CompetitionResultsPage />} />
 
           {/* Blog Routes */}
           <Route path="blog" element={<BlogListPage />} />

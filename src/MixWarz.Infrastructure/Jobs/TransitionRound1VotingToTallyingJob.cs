@@ -55,47 +55,42 @@ namespace MixWarz.Infrastructure.Jobs
             // Get all competitions in Round 1 Voting status
             var competitions = await _competitionRepository.GetByStatusAsync(CompetitionStatus.VotingRound1Open);
 
-            // Get the configured voting period, falling back to default if not available
-            int votingPeriodDays = _jobConfiguration?.GetRound1VotingDurationDays() ?? DefaultRound1VotingPeriodDays;
-            _logger.LogInformation("Using Round 1 voting period of {days} days", votingPeriodDays);
-
-            // Determine which competitions have completed their voting period
+            // Determine which competitions have reached their Round1VotingEndDate
             var now = DateTime.UtcNow;
             var dueCompetitions = competitions.Where(c =>
-                // Using EndDate (submission deadline) + voting period as deadline for voting
-                c.EndDate.AddDays(votingPeriodDays) < now
+                // Using the new Round1VotingEndDate property for automated lifecycle
+                c.Round1VotingEndDate <= now
             ).ToList();
+
+            _logger.LogInformation("Found {total} competitions in VotingRound1Open status, {due} ready for tallying based on Round1VotingEndDate",
+                competitions.Count(), dueCompetitions.Count);
 
             foreach (var competition in dueCompetitions)
             {
                 try
                 {
                     _logger.LogInformation(
-                        "Transitioning competition {competitionId} ({title}) from VotingRound1Open to VotingRound1Tallying",
-                        competition.CompetitionId, competition.Title);
+                        "Transitioning competition {competitionId} ({title}) from VotingRound1Open to VotingRound1Tallying. Round1VotingEndDate: {endDate}",
+                        competition.CompetitionId, competition.Title, competition.Round1VotingEndDate);
 
-                    // Update competition status
+                    // Update competition status to VotingRound1Tallying
                     competition.Status = CompetitionStatus.VotingRound1Tallying;
                     await _competitionRepository.UpdateAsync(competition);
 
-                    // Disqualify any participants who didn't vote
+                    // Immediately disqualify any participants who didn't vote
                     int disqualified = await _round1AssignmentService.DisqualifyNonVotersAsync(competition.CompetitionId);
+                    _logger.LogInformation("Disqualified {disqualified} non-voting participants for competition {competitionId}",
+                        disqualified, competition.CompetitionId);
 
-                    // Tally the votes and determine advancement to Round 2
+                    // Immediately tally the votes and determine advancement to Round 2
                     int advanced = await _round1AssignmentService.TallyVotesAndDetermineAdvancementAsync(competition.CompetitionId);
+                    _logger.LogInformation("Tallied votes for competition {competitionId}, {advanced} submissions advanced to Round 2",
+                        advanced, competition.CompetitionId);
 
                     _logger.LogInformation(
-                        "Successfully tallied Round 1 votes for competition {competitionId}. " +
-                        "{disqualified} submissions were disqualified, {advanced} submissions advanced to Round 2.",
+                        "Successfully completed Round 1 tallying for competition {competitionId}. " +
+                        "{disqualified} submissions disqualified, {advanced} submissions advanced to Round 2.",
                         competition.CompetitionId, disqualified, advanced);
-
-                    // Transition directly to Round 2 Setup
-                    competition.Status = CompetitionStatus.VotingRound2Setup;
-                    await _competitionRepository.UpdateAsync(competition);
-
-                    _logger.LogInformation(
-                        "Automatically transitioned competition {competitionId} to VotingRound2Setup",
-                        competition.CompetitionId);
                 }
                 catch (Exception ex)
                 {

@@ -44,6 +44,9 @@ namespace MixWarz.Infrastructure.Persistence
         // User Activity Tracking
         public DbSet<UserActivity> UserActivities { get; set; }
 
+        // Stripe Subscriptions
+        public DbSet<Subscription> Subscriptions { get; set; }
+
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
@@ -416,6 +419,22 @@ namespace MixWarz.Infrastructure.Persistence
             modelBuilder.Entity<CriteriaScore>()
                 .HasIndex(cs => new { cs.SubmissionJudgmentId, cs.JudgingCriteriaId })
                 .IsUnique();
+
+            // Configure Subscription entity
+            modelBuilder.Entity<Subscription>()
+                .HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Add unique constraint to prevent multiple active subscriptions per user
+            modelBuilder.Entity<Subscription>()
+                .HasIndex(s => new { s.UserId, s.StripeSubscriptionId })
+                .IsUnique();
+
+            // Add index for querying subscriptions by status
+            modelBuilder.Entity<Subscription>()
+                .HasIndex(s => s.Status);
 
             // Seed initial categories
             modelBuilder.Entity<Category>().HasData(

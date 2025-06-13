@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.Extensions.Configuration;
 using MixWarz.Application.Common.Interfaces;
 using MixWarz.Domain.Entities;
+using MixWarz.Domain.Interfaces;
 using MixWarz.Domain.Enums;
 using Stripe;
 using Stripe.Checkout;
@@ -11,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http; // For IHttpContextAccessor
 using System.Security.Claims; // For ClaimsPrincipal
+using Microsoft.Extensions.Logging;
 
 namespace MixWarz.Application.Features.Checkout.Commands.CreateCheckoutSession
 {
@@ -19,122 +21,101 @@ namespace MixWarz.Application.Features.Checkout.Commands.CreateCheckoutSession
         private readonly IAppDbContext _dbContext;
         private readonly IConfiguration _configuration;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        // No direct IStripeService needed here if we use Stripe.net SDK directly with API key from config
+        private readonly IStripeService _stripeService;
+        private readonly ILogger<CreateCheckoutSessionCommandHandler> _logger;
 
         public CreateCheckoutSessionCommandHandler(
             IAppDbContext dbContext,
             IConfiguration configuration,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IStripeService stripeService,
+            ILogger<CreateCheckoutSessionCommandHandler> logger)
         {
             _dbContext = dbContext;
             _configuration = configuration;
             _httpContextAccessor = httpContextAccessor;
+            _stripeService = stripeService;
+            _logger = logger;
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"]; // Ensure API key is set
         }
 
         public async Task<CreateCheckoutSessionResponse> Handle(CreateCheckoutSessionCommand request, CancellationToken cancellationToken)
         {
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-            {
-                return new CreateCheckoutSessionResponse { Success = false, Message = "User not authenticated." };
-            }
-
-            // TODO: Logic to get items for checkout.
-            // If request.Items is null or empty, try to get from user's cart.
-            // For now, assume request.Items is populated or this is a simplified scenario.
-            if (request.Items == null || !request.Items.Any())
-            {
-                // Placeholder: In a real scenario, fetch from ICartRepository for the current user.
-                // For now, returning an error if items are not explicitly passed.
-                return new CreateCheckoutSessionResponse { Success = false, Message = "No items provided for checkout." };
-            }
-
-            // 1. Create Order in MixWarz DB with PendingPayment status
-            var order = new Order
-            {
-                UserId = userId,
-                OrderDate = DateTime.UtcNow,
-                Status = OrderStatus.PendingPayment,
-                OrderTotal = 0 // Will be calculated based on items
-            };
-
-            var orderItems = new List<OrderItem>();
-            decimal totalAmount = 0;
-
-            foreach (var itemDto in request.Items)
-            {
-                var product = await _dbContext.Products.FindAsync(new object[] { itemDto.ProductId }, cancellationToken);
-                if (product == null || product.StripePriceId == null)
-                {
-                    return new CreateCheckoutSessionResponse { Success = false, Message = $"Product with ID {itemDto.ProductId} not found or not configured for Stripe." };
-                }
-
-                orderItems.Add(new OrderItem
-                {
-                    Order = order,
-                    ProductId = product.ProductId,
-                    Quantity = itemDto.Quantity,
-                    Price = product.Price // Price at the time of order creation
-                });
-                totalAmount += product.Price * itemDto.Quantity;
-            }
-
-            order.OrderItems = orderItems;
-            order.OrderTotal = totalAmount;
-
-            _dbContext.Orders.Add(order);
-            await _dbContext.SaveChangesAsync(cancellationToken); // Save order to get OrderId
-
-            // 2. Create Stripe Checkout Session
-            var lineItems = new List<SessionLineItemOptions>();
-            foreach (var orderItem in order.OrderItems)
-            {
-                var product = await _dbContext.Products.FindAsync(new object[] { orderItem.ProductId }, cancellationToken); // Re-fetch for StripePriceId consistency
-                lineItems.Add(new SessionLineItemOptions
-                {
-                    Price = product!.StripePriceId, // product is checked for null and StripePriceId above
-                    Quantity = orderItem.Quantity,
-                });
-            }
-
-            var options = new SessionCreateOptions
-            {
-                PaymentMethodTypes = new List<string> { "card" },
-                LineItems = lineItems,
-                Mode = "payment", // For one-time purchases. Change to "subscription" if needed.
-                SuccessUrl = request.SuccessUrl + "?session_id={CHECKOUT_SESSION_ID}", // Pass session_id for client-side confirmation
-                CancelUrl = request.CancelUrl,
-                ClientReferenceId = userId, // Or order.OrderId.ToString(), ensure consistency
-                Metadata = new Dictionary<string, string>
-                {
-                    { "MixWarzOrderId", order.OrderId.ToString() },
-                    { "MixWarzUserId", userId }
-                }
-            };
-
-            var service = new SessionService();
-            Session session;
             try
             {
-                session = await service.CreateAsync(options, cancellationToken: cancellationToken);
-            }
-            catch (StripeException e)
-            {
-                // Log e.StripeError.Message
-                return new CreateCheckoutSessionResponse { Success = false, Message = $"Stripe error: {e.StripeError?.Message}" };
-            }
+                _logger.LogInformation("Creating checkout session for user {UserId}", request.UserId);
 
-            // Store Stripe Checkout Session ID on the order (optional, but can be useful)
-            order.StripeCheckoutSessionId = session.Id;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+                var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return new CreateCheckoutSessionResponse { Success = false, Message = "User not authenticated." };
+                }
 
-            return new CreateCheckoutSessionResponse
+                // Get user from database
+                var user = await _dbContext.Users.FindAsync(request.UserId);
+                if (user == null)
+                {
+                    return new CreateCheckoutSessionResponse
+                    {
+                        Success = false,
+                        Message = "User not found"
+                    };
+                }
+
+                // Create or update Stripe customer
+                var customer = await _stripeService.CreateOrUpdateCustomerAsync(
+                    user.Id, user.Email!, $"{user.FirstName} {user.LastName}");
+
+                // Update user with Stripe customer ID if not already set
+                if (string.IsNullOrEmpty(user.StripeCustomerId))
+                {
+                    user.StripeCustomerId = customer.Id;
+                    _dbContext.Users.Update(user);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+
+                // Create order in database
+                var order = new Order
+                {
+                    UserId = request.UserId,
+                    OrderDate = DateTime.UtcNow,
+                    TotalAmount = request.CartItems.Sum(item => item.TotalPrice),
+                    OrderTotal = request.CartItems.Sum(item => item.TotalPrice),
+                    Status = OrderStatus.PendingPayment
+                };
+
+                _dbContext.Orders.Add(order);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                // Create Stripe checkout session
+                var session = await _stripeService.CreateCheckoutSessionAsync(
+                    request.CartItems, request.UserId, customer.Id, request.SuccessUrl, request.CancelUrl);
+
+                // Update order with Stripe session ID
+                order.StripeCheckoutSessionId = session.Id;
+                _dbContext.Orders.Update(order);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Checkout session created successfully: {SessionId}", session.Id);
+
+                return new CreateCheckoutSessionResponse
+                {
+                    Success = true,
+                    SessionId = session.Id,
+                    CheckoutUrl = session.Url,
+                    Message = "Checkout session created successfully"
+                };
+            }
+            catch (Exception ex)
             {
-                Success = true,
-                StripeSessionId = session.Id,
-                StripePublishableKey = _configuration["Stripe:PublishableKey"]
-            };
+                _logger.LogError(ex, "Error creating checkout session for user {UserId}", request.UserId);
+
+                return new CreateCheckoutSessionResponse
+                {
+                    Success = false,
+                    Message = "An error occurred while creating the checkout session"
+                };
+            }
         }
     }
 }

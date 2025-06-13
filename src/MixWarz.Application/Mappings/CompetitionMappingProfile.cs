@@ -22,6 +22,8 @@ namespace MixWarz.Application.Mappings
                 .ForMember(dest => dest.SourceTrackUrl, opt => opt.MapFrom(src => src.SourceTrackUrl))
                 .ForMember(dest => dest.Genre, opt => opt.MapFrom(src => src.Genre))
                 .ForMember(dest => dest.SubmissionDeadline, opt => opt.MapFrom(src => src.SubmissionDeadline))
+                .ForMember(dest => dest.Round1VotingEndDate, opt => opt.MapFrom(src => src.Round1VotingEndDate))
+                .ForMember(dest => dest.Round2VotingEndDate, opt => opt.MapFrom(src => src.Round2VotingEndDate))
                 .ForMember(dest => dest.SongCreator, opt => opt.MapFrom(src => src.SongCreator))
                 .ForMember(dest => dest.CoverImageUrl, opt => opt.MapFrom(src => src.CoverImageUrl))
                 .ForMember(dest => dest.NumberOfSubmissions, opt => opt.Ignore())

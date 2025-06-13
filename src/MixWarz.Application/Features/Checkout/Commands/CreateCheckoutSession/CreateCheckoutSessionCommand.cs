@@ -1,19 +1,15 @@
 using MediatR;
 using System.Collections.Generic;
+using MixWarz.Application.Features.Cart.DTOs;
 
 namespace MixWarz.Application.Features.Checkout.Commands.CreateCheckoutSession
 {
     public class CreateCheckoutSessionCommand : IRequest<CreateCheckoutSessionResponse>
     {
-        // Option 1: Specify items directly
-        public List<CheckoutItemDto>? Items { get; set; }
-
-        // Option 2: Rely on current user's cart (handler would fetch it)
-        // No specific property needed here if using this option, UserId will be from ClaimsPrincipal
-
-        // URLs for Stripe redirection
-        public string SuccessUrl { get; set; } = default!;
-        public string CancelUrl { get; set; } = default!;
+        public List<CartItemDto> CartItems { get; set; } = new();
+        public string UserId { get; set; } = string.Empty;
+        public string SuccessUrl { get; set; } = string.Empty;
+        public string CancelUrl { get; set; } = string.Empty;
     }
 
     public class CheckoutItemDto

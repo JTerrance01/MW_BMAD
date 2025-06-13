@@ -30,6 +30,9 @@ namespace MixWarz.Domain.Entities
 
         public decimal OrderTotal { get; set; }
 
+        public bool IsShipped { get; set; } = false;
+        public DateTime? PaymentDate { get; set; }
+
         // Navigation properties
         public virtual User User { get; set; } = default!;
         public virtual ICollection<OrderItem> OrderItems { get; set; } = [];

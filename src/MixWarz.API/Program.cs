@@ -17,6 +17,7 @@ using AutoMapper;
 using MixWarz.Application.Common.Interfaces;
 using MixWarz.Infrastructure.Extensions;
 using MixWarz.Infrastructure.Jobs;
+using MixWarz.Application.Common.Options;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +43,9 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
     options.ValueLengthLimit = int.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
+
+// Configure Competition Timing Options
+builder.Services.Configure<CompetitionTimingOptions>(builder.Configuration.GetSection("CompetitionTiming"));
 
 // Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -79,6 +83,9 @@ builder.Services.AddScoped<IUserActivityRepository, UserActivityRepository>();
 
 // Add services
 builder.Services.AddScoped<ITokenService, TokenService>();
+
+// Register Stripe service
+builder.Services.AddScoped<IStripeService, StripeService>();
 
 // Register Round1AssignmentService for competition voting
 builder.Services.AddScoped<IRound1AssignmentService, Round1AssignmentService>();

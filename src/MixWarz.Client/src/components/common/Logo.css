@@ -31,7 +31,7 @@
   height: 70%;
   background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 200, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 200, 255, 0.15);
   border: 1px solid rgba(0, 200, 255, 0.5);
 }
 
@@ -45,7 +45,7 @@
   background: linear-gradient(to right, #004455, #006699);
   border-radius: 4px;
   border: 1px solid rgba(0, 200, 255, 0.7);
-  box-shadow: 0 0 10px rgba(0, 200, 255, 0.4);
+  box-shadow: 0 0 5px rgba(0, 200, 255, 0.2);
 }
 
 .mixer-faders {
@@ -77,7 +77,7 @@
   height: 15%;
   background: #00c8ff;
   border-radius: 2px;
-  box-shadow: 0 0 5px rgba(0, 200, 255, 0.7);
+  box-shadow: 0 0 3px rgba(0, 200, 255, 0.4);
   top: 60%;
   transition: top 0.3s ease;
 }
@@ -111,7 +111,7 @@
   font-weight: 700;
   font-size: 1.2em;
   color: #00c8ff;
-  text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
+  text-shadow: 0 0 5px rgba(0, 200, 255, 0.4);
   letter-spacing: 2px;
   white-space: nowrap;
 }
@@ -119,15 +119,15 @@
 /* Hover effects */
 .logo-container:hover .logo-mixer {
   transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(0, 200, 255, 0.4);
+  box-shadow: 0 3px 12px rgba(0, 200, 255, 0.25);
 }
 
 .logo-container:hover .logo-text {
-  text-shadow: 0 0 15px rgba(0, 200, 255, 0.9);
+  text-shadow: 0 0 8px rgba(0, 200, 255, 0.5);
 }
 
 .logo-container:hover .mixer-display {
-  box-shadow: 0 0 15px rgba(0, 200, 255, 0.6);
+  box-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
 }
 
 /* Transition animations */

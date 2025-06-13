@@ -177,6 +177,7 @@
 - AWSSDK.Extensions.NETCore.Setup
 - Microsoft.AspNetCore.Authentication.JwtBearer
 - System.IdentityModel.Tokens.Jwt
+- Stripe.net (v48.2.0) for payment processing
 
 ### Frontend Packages
 
@@ -199,7 +200,7 @@
 - AWS credentials and configuration (Access Key, Secret Key)
 - S3 bucket names for different types of files
 - JWT secret key and token configuration
-- Stripe API keys (for future implementation)
+- Stripe API keys (PublishableKey, SecretKey, WebhookSecret) - fully implemented
 
 ## File Storage Strategy
 
@@ -213,6 +214,7 @@
 
 ## Technical Debt & Optimizations
 
+- ✅ Fixed critical dependency injection issue with IStripeService registration in Program.cs
 - Need to address proxy connection issues between frontend and backend
 - Optimize API queries for large datasets with proper pagination
 - Implement more comprehensive error handling in frontend components

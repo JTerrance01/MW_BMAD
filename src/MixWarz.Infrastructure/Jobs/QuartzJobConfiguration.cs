@@ -45,11 +45,21 @@ namespace MixWarz.Infrastructure.Jobs
             string frequentJobsCron = $"0 0/{checkFrequencyMinutes} * * * ?";
 
             // Offset the job schedules slightly to prevent resource contention
+            string upcomingJobsCron = $"0 {checkFrequencyMinutes / 6} 0/{checkFrequencyMinutes} * * ?";
             string round1JobsCron = $"0 {checkFrequencyMinutes / 4} 0/{checkFrequencyMinutes} * * ?";
+            string round1TallyingJobsCron = $"0 {checkFrequencyMinutes / 3} 0/{checkFrequencyMinutes} * * ?";
             string round2JobsCron = $"0 {checkFrequencyMinutes / 2} 0/{checkFrequencyMinutes} * * ?";
 
             // Monthly job runs at midnight on the 1st of every month
             string monthlyJobCron = "0 0 0 1 * ?";
+
+            // Configure the job for transitioning from Upcoming to OpenForSubmissions
+            var upcomingToOpenJobKey = new JobKey("TransitionUpcomingToOpenJob");
+            config.AddJob<TransitionUpcomingToOpenJob>(opts => opts.WithIdentity(upcomingToOpenJobKey));
+            config.AddTrigger(opts => opts
+                .ForJob(upcomingToOpenJobKey)
+                .WithIdentity("TransitionUpcomingToOpenTrigger")
+                .WithCronSchedule(upcomingJobsCron));
 
             // Configure the job for transitioning from submissions to Round 1
             var submissionToRound1JobKey = new JobKey("TransitionSubmissionToRound1Job");
@@ -74,6 +84,14 @@ namespace MixWarz.Infrastructure.Jobs
                 .ForJob(round1ToTallyingJobKey)
                 .WithIdentity("TransitionRound1VotingToTallyingTrigger")
                 .WithCronSchedule(round1JobsCron));
+
+            // Configure the job for transitioning from Round 1 tallying to Round 2 open
+            var round1TallyingToRound2JobKey = new JobKey("TransitionRound1TallyingToRound2OpenJob");
+            config.AddJob<TransitionRound1TallyingToRound2OpenJob>(opts => opts.WithIdentity(round1TallyingToRound2JobKey));
+            config.AddTrigger(opts => opts
+                .ForJob(round1TallyingToRound2JobKey)
+                .WithIdentity("TransitionRound1TallyingToRound2OpenTrigger")
+                .WithCronSchedule(round1TallyingJobsCron));
 
             // Configure the job for transitioning from Round 2 voting to tallying
             var round2ToTallyingJobKey = new JobKey("TransitionRound2VotingToTallyingJob");

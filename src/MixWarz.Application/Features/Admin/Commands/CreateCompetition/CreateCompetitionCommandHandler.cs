@@ -3,6 +3,8 @@ using MixWarz.Domain.Entities;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using MixWarz.Application.Common.Options;
 
 namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
 {
@@ -11,15 +13,18 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
         private readonly ICompetitionRepository _competitionRepository;
         private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<CreateCompetitionCommandHandler> _logger;
+        private readonly IOptions<CompetitionTimingOptions> _timingOptions;
 
         public CreateCompetitionCommandHandler(
             ICompetitionRepository competitionRepository,
             IFileStorageService fileStorageService,
-            ILogger<CreateCompetitionCommandHandler> logger)
+            ILogger<CreateCompetitionCommandHandler> logger,
+            IOptions<CompetitionTimingOptions> timingOptions)
         {
             _competitionRepository = competitionRepository ?? throw new ArgumentNullException(nameof(competitionRepository));
             _fileStorageService = fileStorageService ?? throw new ArgumentNullException(nameof(fileStorageService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _timingOptions = timingOptions ?? throw new ArgumentNullException(nameof(timingOptions));
         }
 
         public async Task<CreateCompetitionResponse> Handle(CreateCompetitionCommand request, CancellationToken cancellationToken)
@@ -111,7 +116,16 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                         existingCompetition.Genre = request.Genre;
 
                     if (request.SubmissionDeadline != default)
+                    {
                         existingCompetition.SubmissionDeadline = request.SubmissionDeadline;
+
+                        // Recalculate automated phase dates when submission deadline changes
+                        var competitionTimingOptions = _timingOptions.Value;
+                        existingCompetition.Round1VotingEndDate = existingCompetition.SubmissionDeadline.AddDays(competitionTimingOptions.DaysForRound1Voting);
+                        existingCompetition.Round2VotingEndDate = existingCompetition.Round1VotingEndDate.AddDays(competitionTimingOptions.DaysForRound2Voting);
+                        _logger.LogInformation("Updated automated phase dates - Round1VotingEndDate: {Round1End}, Round2VotingEndDate: {Round2End}",
+                            existingCompetition.Round1VotingEndDate, existingCompetition.Round2VotingEndDate);
+                    }
 
                     if (!string.IsNullOrWhiteSpace(request.SongCreator))
                         existingCompetition.SongCreator = request.SongCreator;
@@ -174,6 +188,13 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                         SubmissionDeadline = request.SubmissionDeadline,
                         SongCreator = request.SongCreator
                     };
+
+                    // Calculate automated phase dates based on submission deadline and configured options
+                    var competitionTimingOptions = _timingOptions.Value;
+                    competition.Round1VotingEndDate = competition.SubmissionDeadline.AddDays(competitionTimingOptions.DaysForRound1Voting);
+                    competition.Round2VotingEndDate = competition.Round1VotingEndDate.AddDays(competitionTimingOptions.DaysForRound2Voting);
+                    _logger.LogInformation("Calculated automated phase dates - Round1VotingEndDate: {Round1End}, Round2VotingEndDate: {Round2End}",
+                        competition.Round1VotingEndDate, competition.Round2VotingEndDate);
 
                     _logger.LogInformation("Calling repository to create competition");
                     competitionId = await _competitionRepository.CreateAsync(competition);

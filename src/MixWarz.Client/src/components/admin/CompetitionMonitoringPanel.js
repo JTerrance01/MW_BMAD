@@ -26,6 +26,8 @@ import {
   FaTrophy,
   FaCrown,
   FaSync,
+  FaClock,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 // Competition status constants
@@ -105,6 +107,48 @@ const getNextStatus = (currentStatus) => {
   };
 
   return statusTransitions[currentStatus] || null;
+};
+
+// Helper function to format date for display
+const formatScheduleDate = (dateString) => {
+  if (!dateString) return "Not set";
+  const date = new Date(dateString);
+  return date.toLocaleString();
+};
+
+// Helper function to get time remaining
+const getTimeRemaining = (targetDate) => {
+  if (!targetDate) return null;
+  
+  const now = new Date();
+  const target = new Date(targetDate);
+  const diff = target - now;
+  
+  if (diff <= 0) return "Overdue";
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
+// Get badge color for time remaining
+const getTimeRemainingBadgeColor = (targetDate) => {
+  if (!targetDate) return "secondary";
+  
+  const now = new Date();
+  const target = new Date(targetDate);
+  const diff = target - now;
+  
+  if (diff <= 0) return "danger";
+  
+  const hours = diff / (1000 * 60 * 60);
+  if (hours <= 24) return "warning";
+  if (hours <= 72) return "info";
+  return "success";
 };
 
 // Main Component
@@ -344,6 +388,47 @@ const CompetitionMonitoringPanel = ({ competition, onRefreshCompetition }) => {
                 </tr>
               </tbody>
             </Table>
+
+            {/* NEW: Automated Schedule Section */}
+            <h6 className="mt-4 d-flex align-items-center">
+              <FaClock className="me-2 text-info" />
+              Automated Schedule
+            </h6>
+            <Table striped bordered hover size="sm">
+              <tbody>
+                <tr>
+                  <th style={{ width: "40%" }}>Round 1 Voting End</th>
+                  <td>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span>{formatScheduleDate(competition.round1VotingEndDate)}</span>
+                      {competition.round1VotingEndDate && (
+                        <Badge bg={getTimeRemainingBadgeColor(competition.round1VotingEndDate)}>
+                          {getTimeRemaining(competition.round1VotingEndDate)}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th>Round 2 Voting End</th>
+                  <td>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span>{formatScheduleDate(competition.round2VotingEndDate)}</span>
+                      {competition.round2VotingEndDate && (
+                        <Badge bg={getTimeRemainingBadgeColor(competition.round2VotingEndDate)}>
+                          {getTimeRemaining(competition.round2VotingEndDate)}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </Table>
+
+            <Alert variant="info" className="small mb-3">
+              <FaCalendarAlt className="me-2" />
+              <strong>Automation Note:</strong> Phase transitions are handled automatically by background jobs based on these scheduled dates. Manual transitions are still available if needed.
+            </Alert>
 
             <div className="d-flex gap-2 mt-3">
               {isActionAvailable("transition") && (

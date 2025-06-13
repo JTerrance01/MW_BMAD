@@ -55,63 +55,55 @@ namespace MixWarz.Infrastructure.Jobs
             // Get all competitions in Round 2 Voting status
             var competitions = await _competitionRepository.GetByStatusAsync(CompetitionStatus.VotingRound2Open);
 
-            // Get the configured voting periods
-            int round1VotingPeriodDays = _jobConfiguration?.GetRound1VotingDurationDays() ??
-                TransitionRound1VotingToTallyingJob.DefaultRound1VotingPeriodDays;
-
-            int round2VotingPeriodDays = _jobConfiguration?.GetRound2VotingDurationDays() ?? DefaultRound2VotingPeriodDays;
-
-            _logger.LogInformation("Using Round 2 voting period of {days} days (after Round 1 period of {round1Days} days)",
-                round2VotingPeriodDays, round1VotingPeriodDays);
-
-            // Determine which competitions have completed their voting period
+            // Determine which competitions have reached their Round2VotingEndDate
             var now = DateTime.UtcNow;
             var dueCompetitions = competitions.Where(c =>
-                // Calculate an estimated Round 2 start date from EndDate + Round1VotingPeriodDays
-                c.EndDate.AddDays(round1VotingPeriodDays + round2VotingPeriodDays) < now
+                // Using the new Round2VotingEndDate property for automated lifecycle
+                c.Round2VotingEndDate <= now
             ).ToList();
+
+            _logger.LogInformation("Found {total} competitions in VotingRound2Open status, {due} ready for tallying based on Round2VotingEndDate",
+                competitions.Count(), dueCompetitions.Count);
 
             foreach (var competition in dueCompetitions)
             {
                 try
                 {
                     _logger.LogInformation(
-                        "Transitioning competition {competitionId} ({title}) from VotingRound2Open to VotingRound2Tallying",
-                        competition.CompetitionId, competition.Title);
+                        "Transitioning competition {competitionId} ({title}) from VotingRound2Open to VotingRound2Tallying. Round2VotingEndDate: {endDate}",
+                        competition.CompetitionId, competition.Title, competition.Round2VotingEndDate);
 
-                    // Update competition status
+                    // Update competition status to VotingRound2Tallying
                     competition.Status = CompetitionStatus.VotingRound2Tallying;
                     await _competitionRepository.UpdateAsync(competition);
 
-                    // Tally the votes and determine the winner
-                    (int winnerId, bool isTie) = await _round2VotingService.TallyRound2VotesAsync(competition.CompetitionId);
+                    // Immediately tally the votes and determine the winner
+                    // Note: TallyRound2VotesAsync handles final status transitions internally
+                    var (winnerId, isTie) = await _round2VotingService.TallyRound2VotesAsync(competition.CompetitionId);
 
                     if (isTie)
                     {
-                        // If there's a tie, we need manual intervention from the song creator
+                        // TallyRound2VotesAsync detected an unresolvable tie
+                        // Set status to RequiresManualWinnerSelection for manual intervention
                         competition.Status = CompetitionStatus.RequiresManualWinnerSelection;
                         await _competitionRepository.UpdateAsync(competition);
 
                         _logger.LogInformation(
-                            "Competition {competitionId} has a tie in Round 2. Status set to RequiresManualWinnerSelection",
+                            "Competition {competitionId} has an unresolvable tie in Round 2. Status set to RequiresManualWinnerSelection. Manual winner selection required.",
                             competition.CompetitionId);
                     }
                     else if (winnerId > 0)
                     {
-                        // Update winner status and transition to Completed
-                        await _round2VotingService.SetCompetitionWinnerAsync(competition.CompetitionId, winnerId);
-
-                        competition.Status = CompetitionStatus.Completed;
-                        await _competitionRepository.UpdateAsync(competition);
-
+                        // TallyRound2VotesAsync successfully determined a winner and already set status to Completed
                         _logger.LogInformation(
-                            "Competition {competitionId} completed with winner submission ID {winnerId}",
+                            "Competition {competitionId} automatically completed with winner submission ID {winnerId}. Status set to Completed.",
                             competition.CompetitionId, winnerId);
                     }
                     else
                     {
+                        // Unexpected case - no winner and no tie detected
                         _logger.LogWarning(
-                            "Competition {competitionId} had no valid winner determined. Manual intervention required.",
+                            "Competition {competitionId} had no valid winner determined and no tie detected. Setting status to RequiresManualWinnerSelection.",
                             competition.CompetitionId);
 
                         competition.Status = CompetitionStatus.RequiresManualWinnerSelection;

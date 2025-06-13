@@ -1,19 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import { Table, Button, Card, Row, Col, Form, Alert } from "react-bootstrap";
+import { Table, Button, Card, Row, Col, Form, Alert, Spinner } from "react-bootstrap";
 import {
   removeFromCart,
   updateQuantity,
   clearCart,
 } from "../../store/cartSlice";
-import { BsTrash } from "react-icons/bs";
+import { BsTrash, BsCreditCard } from "react-icons/bs";
+import { proceedToCheckout } from "../../services/checkoutService";
 
 const CartPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items } = useSelector((state) => state.cart);
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(null);
 
   // Calculate subtotal, taxes, and total
   const subtotal = items.reduce(
@@ -42,16 +45,41 @@ const CartPage = () => {
     }
   };
 
-  const handleCheckout = () => {
-    if (isAuthenticated) {
-      navigate("/checkout");
-    } else {
+  const handleCheckout = async () => {
+    if (!isAuthenticated) {
       navigate("/login", {
         state: {
           from: "/cart",
           message: "Please login to continue with checkout.",
         },
       });
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+
+    try {
+      // Convert cart items to format expected by checkout service
+      const cartItemsForCheckout = items.map(item => ({
+        productId: item.id,
+        productName: item.name,
+        productPrice: item.price,
+        productImageUrl: item.imageUrl || '',
+        quantity: item.quantity,
+        category: item.category || ''
+      }));
+
+      console.log('🛒 Proceeding to Stripe checkout with items:', cartItemsForCheckout);
+      
+      // This will create a Stripe session and redirect to Stripe checkout
+      await proceedToCheckout(cartItemsForCheckout);
+      
+    } catch (error) {
+      console.error('❌ Checkout failed:', error);
+      setCheckoutError(error.message || 'Checkout failed. Please try again.');
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -260,6 +288,12 @@ const CartPage = () => {
                 </strong>
               </div>
 
+              {checkoutError && (
+                <Alert variant="danger" className="mb-3">
+                  <strong>Checkout Error:</strong> {checkoutError}
+                </Alert>
+              )}
+
               <div className="d-grid gap-2">
                 <Button
                   style={{
@@ -269,8 +303,19 @@ const CartPage = () => {
                   }}
                   size="lg"
                   onClick={handleCheckout}
+                  disabled={checkoutLoading || items.length === 0}
                 >
-                  Proceed to Checkout
+                  {checkoutLoading ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Creating Checkout Session...
+                    </>
+                  ) : (
+                    <>
+                      <BsCreditCard className="me-2" />
+                      Proceed to Stripe Checkout
+                    </>
+                  )}
                 </Button>
               </div>
 

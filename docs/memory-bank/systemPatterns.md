@@ -213,15 +213,21 @@ This architecture ensures separation of concerns and maintainability.
 
 ## Integration Points
 
+- Stripe API for payment processing:
+  - Product and Price creation for catalog management
+  - Checkout Session creation for secure payment processing
+  - Customer management for user billing information
+  - Subscription management for recurring payments
+  - Webhook event processing for automated order fulfillment
+  - Digital product access granting via UserProductAccess
 - AWS S3 for file storage:
+
   - Competition audio submissions in 'mixwarz-submissions' bucket
   - Product images in 'mixwarz-product-images' bucket
   - Digital product files in 'mixwarz-product-files' bucket
   - Blog images in 'mixwarz-blog-images' bucket (planned)
   - User profile pictures in 'mixwarz-profile-pictures' bucket
-- Stripe API for payment processing:
-  - PaymentIntent for secure checkout
-  - Webhooks for payment confirmation
+
 - Database:
   - PostgreSQL for storing all entity data
   - Entity Framework Core for ORM functionality
@@ -253,6 +259,11 @@ This architecture ensures separation of concerns and maintainability.
 - Order processing pipeline
 - Digital product access management
 - Secure download links with expiration
+- Stripe payment integration with support for:
+  - Monthly memberships (recurring subscriptions)
+  - Digital products (one-time purchases with automated access)
+  - Physical products (one-time purchases with shipping support)
+- Automated order fulfillment via webhook processing
 
 ### Admin Interface Module
 

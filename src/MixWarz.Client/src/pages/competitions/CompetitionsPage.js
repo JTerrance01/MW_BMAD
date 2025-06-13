@@ -174,6 +174,36 @@ const CompetitionsPage = () => {
         </div>
       </div>
 
+      {/* Membership Notice for Non-Authenticated Users */}
+      {!isAuthenticated && (
+        <Alert 
+          variant="info" 
+          className="mb-4"
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            borderColor: "var(--accent-primary)",
+            color: "var(--text-primary)"
+          }}
+        >
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>🎵 Ready to compete?</strong> Browse competitions for free, but you'll need a paid membership to participate in battles and submit your mixes.
+            </div>
+            <div>
+              <Button
+                as={Link}
+                to="/pricing"
+                variant="primary"
+                size="sm"
+                className="ms-3"
+              >
+                View Membership Plans
+              </Button>
+            </div>
+          </div>
+        </Alert>
+      )}
+
       {/* Search and Filter Bar */}
       <Row className="mb-4">
         <Col md={4}>

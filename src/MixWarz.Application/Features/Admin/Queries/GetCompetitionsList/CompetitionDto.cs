@@ -103,6 +103,16 @@ namespace MixWarz.Application.Features.Admin.Queries.GetCompetitionsList
         public DateTime SubmissionDeadline { get; set; }
 
         /// <summary>
+        /// Automated date when Round 1 voting period ends
+        /// </summary>
+        public DateTime Round1VotingEndDate { get; set; }
+
+        /// <summary>
+        /// Automated date when Round 2 voting period ends
+        /// </summary>
+        public DateTime Round2VotingEndDate { get; set; }
+
+        /// <summary>
         /// Comma-separated list of artists, writers, producers
         /// </summary>
         public string? SongCreator { get; set; }

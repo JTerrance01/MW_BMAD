@@ -15,7 +15,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Quartz" Version="3.14.0" />
     <PackageReference Include="Quartz.AspNetCore" Version="3.14.0" />
-    <PackageReference Include="Stripe.net" Version="48.1.0" />
+    <PackageReference Include="Stripe.net" Version="48.2.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.9.0" />    
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
   </ItemGroup>

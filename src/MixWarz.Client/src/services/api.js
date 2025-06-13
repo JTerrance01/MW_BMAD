@@ -229,10 +229,29 @@ api.interceptors.response.use(
         localStorage.removeItem("token");
         console.warn("Auth token removed due to 401 response");
 
-        // Redirect to login page after a short delay
-        setTimeout(() => {
-          window.location.href = "/login?expired=true";
-        }, 100);
+        // Define public endpoints that should not redirect to login
+        const publicEndpoints = [
+          '/api/competitions',
+          '/api/products',
+          '/api/blog',
+          '/api/health'
+        ];
+
+        // Check if this was a request to a public endpoint
+        const requestUrl = error.config?.url || '';
+        const isPublicEndpoint = publicEndpoints.some(endpoint => 
+          requestUrl.includes(endpoint)
+        );
+
+        // Only redirect to login if this was NOT a public endpoint
+        if (!isPublicEndpoint) {
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            window.location.href = "/login?expired=true";
+          }, 100);
+        } else {
+          console.log("401 error on public endpoint - not redirecting to login");
+        }
       }
     } else if (error.request) {
       console.error(`No response received`);

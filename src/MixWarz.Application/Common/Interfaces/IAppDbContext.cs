@@ -43,6 +43,9 @@ namespace MixWarz.Application.Common.Interfaces
         // User Activity Tracking
         DbSet<UserActivity> UserActivities { get; set; }
 
+        // Stripe Subscriptions
+        DbSet<Subscription> Subscriptions { get; set; }
+
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }
 }

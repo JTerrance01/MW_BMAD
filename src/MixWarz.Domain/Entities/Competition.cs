@@ -52,6 +52,13 @@ namespace MixWarz.Domain.Entities
         [Required]
         public DateTime SubmissionDeadline { get; set; }
 
+        // Automated competition lifecycle dates
+        [Required]
+        public DateTime Round1VotingEndDate { get; set; }
+
+        [Required]
+        public DateTime Round2VotingEndDate { get; set; }
+
         // Comma-separated list of artists, writers, producers
         public string SongCreator { get; set; }
 

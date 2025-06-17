@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, Button, Form, Alert } from "react-bootstrap";
 import { FaStar, FaRegStar } from "react-icons/fa";
 
@@ -63,6 +63,9 @@ const JudgingScorecard = ({
   const [criteriaScores, setCriteriaScores] = useState({});
   const [overallComments, setOverallComments] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
+  
+  // Ref for scrollable container to auto-scroll to top when submission changes
+  const scrollableRef = useRef(null);
 
   // Initialize scores from existing judgment or defaults
   useEffect(() => {
@@ -91,6 +94,11 @@ const JudgingScorecard = ({
     
     // Clear any validation errors when switching submissions
     setValidationErrors({});
+    
+    // Auto-scroll to top when submission changes
+    if (scrollableRef.current) {
+      scrollableRef.current.scrollTo(0, 0);
+    }
   }, [existingJudgment, submissionId]); // Added submissionId as dependency
 
   const handleScoreChange = (criteriaId, score) => {
@@ -316,7 +324,7 @@ const JudgingScorecard = ({
         </div>
       </Card.Header>
 
-      <Card.Body className="p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+      <Card.Body ref={scrollableRef} className="p-4" style={{ maxHeight: "70vh", overflowY: "auto" }}>
         {/* Criteria Scoring */}
         {defaultCriteria.map((criteria) => (
           <div key={criteria.id} className="mb-4">

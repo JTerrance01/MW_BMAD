@@ -165,7 +165,7 @@ const userService = {
    * @returns {Promise<Object>} Purchased products
    */
   getPurchasedProducts: async (params = {}) => {
-    return apiService.get("/api/orders/purchases", params, {
+    return apiService.get("/api/UserProfile/purchases", params, {
       errorContext: "Purchased Products",
     });
   },

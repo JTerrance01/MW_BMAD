@@ -48,15 +48,18 @@ namespace MixWarz.API.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<CompetitionListVm>> GetCompetitions(
             [FromQuery] string? status = null,
+            [FromQuery] string? genre = null,
+            [FromQuery] string? searchTerm = null,
             [FromQuery] bool? featured = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                Console.WriteLine($"GetCompetitions called with status={status}, featured={featured}, page={page}, pageSize={pageSize}");
+                Console.WriteLine($"GetCompetitions called with status={status}, genre={genre}, searchTerm={searchTerm}, featured={featured}, page={page}, pageSize={pageSize}");
 
                 // Parse the status string to enum if provided
                 CompetitionStatus? statusEnum = null;
@@ -73,9 +76,26 @@ namespace MixWarz.API.Controllers
                     }
                 }
 
+                // Parse the genre string to enum if provided
+                Genre? genreEnum = null;
+                if (!string.IsNullOrEmpty(genre))
+                {
+                    if (Enum.TryParse<Genre>(genre, true, out var parsedGenre))
+                    {
+                        genreEnum = parsedGenre;
+                        Console.WriteLine($"Successfully parsed genre '{genre}' to enum value: {genreEnum}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Could not parse genre '{genre}' to a valid Genre enum value");
+                    }
+                }
+
                 var query = new GetCompetitionsListQuery
                 {
                     Status = statusEnum,
+                    Genre = genreEnum,
+                    SearchTerm = searchTerm,
                     Page = page,
                     PageSize = pageSize
                     // Note: featured parameter is ignored for now since it's not implemented in the backend
@@ -93,6 +113,7 @@ namespace MixWarz.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<CompetitionDetailDto>> GetCompetitionById(int id)
         {
             var query = new GetCompetitionDetailQuery { CompetitionId = id };

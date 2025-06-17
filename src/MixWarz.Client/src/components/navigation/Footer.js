@@ -114,7 +114,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li className="mb-2">
-                <Link to="/submissions" className="footer-link">
+                <Link to="/profile" className="footer-link">
                   My Submissions
                 </Link>
               </li>

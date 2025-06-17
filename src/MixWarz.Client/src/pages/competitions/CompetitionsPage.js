@@ -48,15 +48,27 @@ const CompetitionsPage = () => {
     const params = {
       page: currentPage,
       pageSize,
-      ...filters,
     };
 
-    // Remove empty filters
-    Object.keys(params).forEach((key) => {
-      if (params[key] === "" || params[key] === null) {
-        delete params[key];
-      }
-    });
+    // Map frontend filter values to backend enum values
+    if (filters.status && filters.status !== "") {
+      // Map frontend status values to backend enum values
+      const statusMapping = {
+        "Active": "OpenForSubmissions", // Map "Active" to "OpenForSubmissions"
+        "Upcoming": "Upcoming",
+        "Completed": "Completed"
+      };
+      params.status = statusMapping[filters.status] || filters.status;
+    }
+
+    if (filters.genre && filters.genre !== "") {
+      // Genre values should match the backend enum (they already do)
+      params.genre = filters.genre;
+    }
+
+    if (filters.searchTerm && filters.searchTerm !== "") {
+      params.searchTerm = filters.searchTerm;
+    }
 
     console.log("Loading competitions with params:", params);
     dispatch(fetchCompetitions(params));
@@ -85,6 +97,14 @@ const CompetitionsPage = () => {
       ...prev,
       [name]: value,
     }));
+    
+    // Auto-apply filters when they change (except for search term)
+    if (name !== 'searchTerm') {
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        dispatch(setPage(1));
+      }, 10);
+    }
   };
 
   const handleApplyFilters = (e) => {
@@ -107,8 +127,6 @@ const CompetitionsPage = () => {
       searchTerm: "",
     });
     dispatch(setPage(1));
-    // Load with default filters
-    setTimeout(loadCompetitions, 10);
   };
 
   const handlePageChange = (page) => {
@@ -206,7 +224,7 @@ const CompetitionsPage = () => {
 
       {/* Search and Filter Bar */}
       <Row className="mb-4">
-        <Col md={4}>
+        <Col md={3}>
           <Form onSubmit={handleApplyFilters}>
             <InputGroup>
               <Form.Control
@@ -227,7 +245,7 @@ const CompetitionsPage = () => {
             </InputGroup>
           </Form>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Form.Select
             value={filters.status}
             onChange={handleFilterChange}
@@ -244,7 +262,7 @@ const CompetitionsPage = () => {
             <option value="Completed">Completed</option>
           </Form.Select>
         </Col>
-        <Col md={4}>
+        <Col md={3}>
           <Form.Select
             value={filters.genre}
             onChange={handleFilterChange}
@@ -256,19 +274,40 @@ const CompetitionsPage = () => {
             }}
           >
             <option value="">All Genres</option>
-            <option value="Electronic">Electronic</option>
-            <option value="HipHop">Hip Hop</option>
-            <option value="Rock">Rock</option>
             <option value="Pop">Pop</option>
+            <option value="Rock">Rock</option>
+            <option value="HipHop">Hip Hop</option>
             <option value="Jazz">Jazz</option>
             <option value="Classical">Classical</option>
-            <option value="Folk">Folk</option>
+            <option value="Electronic">Electronic</option>
             <option value="Country">Country</option>
+            <option value="RnB">R&B</option>
             <option value="Reggae">Reggae</option>
             <option value="Blues">Blues</option>
             <option value="Metal">Metal</option>
-            <option value="Punk">Punk</option>
+            <option value="Folk">Folk</option>
+            <option value="World">World</option>
+            <option value="Other">Other</option>
           </Form.Select>
+        </Col>
+        <Col md={3}>
+          <div className="d-flex gap-2">
+            <Button 
+              variant="outline-secondary" 
+              onClick={handleApplyFilters}
+              className="flex-fill"
+            >
+              <FaFilter className="me-1" />
+              Apply Filters
+            </Button>
+            <Button 
+              variant="outline-danger" 
+              onClick={handleResetFilters}
+              className="flex-fill"
+            >
+              Reset
+            </Button>
+          </div>
         </Col>
       </Row>
 

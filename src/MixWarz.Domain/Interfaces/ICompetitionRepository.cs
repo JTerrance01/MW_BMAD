@@ -15,6 +15,18 @@ namespace MixWarz.Domain.Interfaces
         Task<int> GetTotalCountAsync();
         Task<int> GetCountByStatusAsync(CompetitionStatus status);
 
+        // New filtering methods
+        Task<IEnumerable<Competition>> GetFilteredAsync(
+            CompetitionStatus? status = null,
+            Genre? genre = null,
+            string? searchTerm = null,
+            int page = 1,
+            int pageSize = 10);
+        Task<int> GetFilteredCountAsync(
+            CompetitionStatus? status = null,
+            Genre? genre = null,
+            string? searchTerm = null);
+
         // Admin-specific methods
         Task<(IEnumerable<Competition> Competitions, int TotalCount)> GetCompetitionsForAdminAsync(
             string organizerId,

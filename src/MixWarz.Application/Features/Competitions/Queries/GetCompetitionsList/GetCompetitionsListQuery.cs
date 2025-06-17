@@ -35,6 +35,8 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionsList
     public class GetCompetitionsListQuery : IRequest<CompetitionListVm>
     {
         public CompetitionStatus? Status { get; set; }
+        public Genre? Genre { get; set; }
+        public string? SearchTerm { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }
@@ -57,16 +59,18 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionsList
             IEnumerable<Competition> competitions;
             int totalCount;
 
-            if (request.Status.HasValue)
-            {
-                competitions = await _competitionRepository.GetByStatusAsync(request.Status.Value, request.Page, request.PageSize);
-                totalCount = await _competitionRepository.GetCountByStatusAsync(request.Status.Value);
-            }
-            else
-            {
-                competitions = await _competitionRepository.GetAllAsync(request.Page, request.PageSize);
-                totalCount = await _competitionRepository.GetTotalCountAsync();
-            }
+            // Use the new filtered method that supports all filter parameters
+            competitions = await _competitionRepository.GetFilteredAsync(
+                status: request.Status,
+                genre: request.Genre,
+                searchTerm: request.SearchTerm,
+                page: request.Page,
+                pageSize: request.PageSize);
+
+            totalCount = await _competitionRepository.GetFilteredCountAsync(
+                status: request.Status,
+                genre: request.Genre,
+                searchTerm: request.SearchTerm);
 
             // Map to DTO with all required fields
             var competitionDtos = new List<CompetitionDto>();

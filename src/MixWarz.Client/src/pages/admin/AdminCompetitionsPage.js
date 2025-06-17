@@ -2002,52 +2002,45 @@ const AdminCompetitionsPage = () => {
                           </Badge>
                         </Card.Title>
                         <div className="mt-3">
-                          {nonVoters.length <= 10 ? (
-                            // Show all users if 10 or fewer
-                            <div className="row">
-                              {nonVoters.map((nonVoter, index) => (
-                                <div key={index} className="col-md-6 col-lg-4 mb-2">
-                                  <div className="d-flex align-items-center bg-light rounded p-2">
-                                    <FaUser className="me-2 text-muted" />
-                                    <div>
-                                      <div className="fw-bold text-truncate" style={{ maxWidth: '150px' }}>
-                                        {nonVoter.voterUsername}
-                                      </div>
-                                      <small className="text-muted">
-                                        Group {nonVoter.assignedGroupNumber}
-                                      </small>
-                                    </div>
+                          {/* Scrollable container showing all non-voters with smaller cards */}
+                          <div 
+                            className="row g-2" 
+                            style={{ 
+                              maxHeight: '300px', 
+                              overflowY: 'auto',
+                              border: '1px solid rgba(0,0,0,0.1)',
+                              borderRadius: '8px',
+                              padding: '12px',
+                              backgroundColor: 'rgba(255,255,255,0.05)'
+                            }}
+                          >
+                            {nonVoters.map((nonVoter, index) => (
+                              <div key={index} className="col-6 col-md-4 col-lg-3 col-xl-2 mb-2">
+                                <div 
+                                  className="d-flex flex-column align-items-center bg-light rounded p-2 text-center"
+                                  style={{ minHeight: '70px' }}
+                                  title={`${nonVoter.voterUsername} - Group ${nonVoter.assignedGroupNumber}`}
+                                >
+                                  <FaUser className="text-muted mb-1" style={{ fontSize: '0.9em' }} />
+                                  <div className="fw-bold text-truncate" style={{ 
+                                    maxWidth: '80px', 
+                                    fontSize: '0.8em',
+                                    lineHeight: '1.1'
+                                  }}>
+                                    {nonVoter.voterUsername}
                                   </div>
+                                  <small className="text-muted" style={{ fontSize: '0.7em' }}>
+                                    G{nonVoter.assignedGroupNumber}
+                                  </small>
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            // Show condensed list if more than 10 users
-                            <div>
-                              <div className="row mb-3">
-                                {nonVoters.slice(0, 9).map((nonVoter, index) => (
-                                  <div key={index} className="col-md-4 col-lg-3 mb-2">
-                                    <div className="d-flex align-items-center bg-light rounded p-2">
-                                      <FaUser className="me-2 text-muted" />
-                                      <div>
-                                        <div className="fw-bold text-truncate" style={{ maxWidth: '120px' }}>
-                                          {nonVoter.voterUsername}
-                                        </div>
-                                        <small className="text-muted">
-                                          Group {nonVoter.assignedGroupNumber}
-                                        </small>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
                               </div>
-                              {nonVoters.length > 9 && (
-                                <div className="text-center">
-                                  <Badge bg="dark" className="fs-6 px-3 py-2">
-                                    ... and {nonVoters.length - 9} more users
-                                  </Badge>
-                                </div>
-                              )}
+                            ))}
+                          </div>
+                          {nonVoters.length > 12 && (
+                            <div className="text-center mt-2">
+                              <small className="text-muted">
+                                Scroll to view all {nonVoters.length} users who haven't voted
+                              </small>
                             </div>
                           )}
                         </div>

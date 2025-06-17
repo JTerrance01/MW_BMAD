@@ -453,27 +453,27 @@ const UserSubmissionsList = ({ isCurrentUser = true }) => {
       )}
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} className="modal-dark">
+        <Modal.Header closeButton className="bg-dark text-light border-secondary">
+          <Modal.Title className="text-light">Confirm Deletion</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="bg-dark text-light">
           {submissionToDelete && (
             <div>
-              <p>Are you sure you want to delete this submission?</p>
-              <div className="border-start border-warning ps-3">
-                <h6>{submissionToDelete.mixTitle}</h6>
+              <p className="text-light">Are you sure you want to delete this submission?</p>
+              <div className="border-start border-warning ps-3 bg-secondary rounded p-2 mb-3">
+                <h6 className="text-light mb-1">{submissionToDelete.mixTitle}</h6>
                 <small className="text-muted">
                   From: {submissionToDelete.competitionTitle}
                 </small>
               </div>
-              <Alert variant="warning" className="mt-3">
+              <Alert variant="warning" className="mt-3 bg-warning bg-opacity-25 border-warning text-warning">
                 <strong>Warning:</strong> This action cannot be undone. The audio file and all associated data will be permanently removed.
               </Alert>
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="bg-dark border-secondary">
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Cancel
           </Button>

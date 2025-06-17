@@ -133,22 +133,22 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                     // Only update the cover image if a new one was provided
                     if (!string.IsNullOrEmpty(request.ImageUrl))
                     {
-                        existingCompetition.CoverImageUrl = request.ImageUrl;
-                        _logger.LogInformation("Updated cover image URL: {CoverImageUrl}", request.ImageUrl);
+                        existingCompetition.CoverImageUrl = EnsureAbsoluteUrl(request.ImageUrl);
+                        _logger.LogInformation("Updated cover image URL: {CoverImageUrl}", existingCompetition.CoverImageUrl);
                     }
 
                     // Only update the multitrack zip if a new one was provided
                     if (!string.IsNullOrEmpty(request.MultitrackZipUrl))
                     {
-                        existingCompetition.MultitrackZipUrl = request.MultitrackZipUrl;
-                        _logger.LogInformation("Updated multitrack ZIP URL: {MultitrackZipUrl}", request.MultitrackZipUrl);
+                        existingCompetition.MultitrackZipUrl = EnsureAbsoluteUrl(request.MultitrackZipUrl);
+                        _logger.LogInformation("Updated multitrack ZIP URL: {MultitrackZipUrl}", existingCompetition.MultitrackZipUrl);
                     }
 
                     // Only update the source track if a new one was provided
                     if (!string.IsNullOrEmpty(request.SourceTrackUrl))
                     {
-                        existingCompetition.SourceTrackUrl = request.SourceTrackUrl;
-                        _logger.LogInformation("Updated source track URL: {SourceTrackUrl}", request.SourceTrackUrl);
+                        existingCompetition.SourceTrackUrl = EnsureAbsoluteUrl(request.SourceTrackUrl);
+                        _logger.LogInformation("Updated source track URL: {SourceTrackUrl}", existingCompetition.SourceTrackUrl);
                     }
 
                     _logger.LogInformation("Calling repository to update competition");
@@ -170,6 +170,15 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                 {
                     // Create a new competition
                     _logger.LogInformation("Creating new competition");
+
+                    // ENSURE ABSOLUTE URLS: Process URLs to ensure they are absolute before saving to database
+                    var processedImageUrl = EnsureAbsoluteUrl(request.ImageUrl);
+                    var processedMultitrackUrl = EnsureAbsoluteUrl(request.MultitrackZipUrl);
+                    var processedSourceTrackUrl = EnsureAbsoluteUrl(request.SourceTrackUrl);
+
+                    _logger.LogInformation("Processed URLs - Image: {ImageUrl}, Multitrack: {MultitrackUrl}, SourceTrack: {SourceTrackUrl}",
+                        processedImageUrl, processedMultitrackUrl, processedSourceTrackUrl);
+
                     var competition = new Competition
                     {
                         Title = request.Title,
@@ -181,9 +190,9 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                         Status = status,
                         OrganizerUserId = request.OrganizerUserId,
                         CreationDate = DateTime.UtcNow,
-                        CoverImageUrl = request.ImageUrl,
-                        MultitrackZipUrl = request.MultitrackZipUrl,
-                        SourceTrackUrl = request.SourceTrackUrl,
+                        CoverImageUrl = processedImageUrl,
+                        MultitrackZipUrl = processedMultitrackUrl,
+                        SourceTrackUrl = processedSourceTrackUrl,
                         Genre = request.Genre,
                         SubmissionDeadline = request.SubmissionDeadline,
                         SongCreator = request.SongCreator
@@ -221,6 +230,41 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                     Errors = new List<string> { ex.Message }
                 };
             }
+        }
+
+        /// <summary>
+        /// Ensures the URL is absolute format for database storage.
+        /// Converts relative URLs to absolute URLs using localhost:7001 as base.
+        /// </summary>
+        /// <param name="url">The URL to process</param>
+        /// <returns>Absolute URL in format: https://localhost:7001/uploads/directory/filename.ext</returns>
+        private string EnsureAbsoluteUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            // If already absolute, return as-is
+            if (url.StartsWith("http://") || url.StartsWith("https://"))
+            {
+                _logger.LogInformation("URL is already absolute: {Url}", url);
+                return url;
+            }
+
+            // For relative URLs, convert to absolute
+            const string baseUrl = "https://localhost:7001";
+
+            // Remove leading slash if present
+            var cleanPath = url.StartsWith("/") ? url.Substring(1) : url;
+
+            // Construct absolute URL
+            var absoluteUrl = $"{baseUrl}/{cleanPath}";
+
+            // Clean up any duplicate /uploads/ patterns
+            absoluteUrl = absoluteUrl.Replace("/uploads/uploads/", "/uploads/");
+
+            _logger.LogInformation("Converted relative URL to absolute: {OriginalUrl} → {AbsoluteUrl}", url, absoluteUrl);
+
+            return absoluteUrl;
         }
     }
 }

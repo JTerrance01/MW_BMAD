@@ -511,17 +511,8 @@ namespace MixWarz.API.Controllers
 
                 var coverImageResult = await _fileStorageService.UploadFileAsync(command.CoverImage, "competition-covers");
 
-                // Check if result is already a valid URL (absolute or relative from MockFileStorageService)
-                if (Uri.TryCreate(coverImageResult, UriKind.Absolute, out _) || coverImageResult.StartsWith("/uploads/"))
-                {
-                    // Already a valid URL, use directly
-                    command.ImageUrl = coverImageResult;
-                }
-                else
-                {
-                    // File key, generate URL
-                    command.ImageUrl = await _fileStorageService.GetFileUrlAsync(coverImageResult, TimeSpan.FromDays(365));
-                }
+                // Convert to absolute URL for consistent database storage
+                command.ImageUrl = GenerateAbsoluteFileUrl(coverImageResult);
 
                 _logger.LogInformation("Cover image uploaded successfully: {Url}", command.ImageUrl);
 
@@ -539,17 +530,8 @@ namespace MixWarz.API.Controllers
 
                 var multitrackResult = await _fileStorageService.UploadFileAsync(command.MultitrackZipFile, "competition-multitracks");
 
-                // Check if result is already a valid URL (absolute or relative from MockFileStorageService)
-                if (Uri.TryCreate(multitrackResult, UriKind.Absolute, out _) || multitrackResult.StartsWith("/uploads/"))
-                {
-                    // Already a valid URL, use directly
-                    command.MultitrackZipUrl = multitrackResult;
-                }
-                else
-                {
-                    // File key, generate URL
-                    command.MultitrackZipUrl = await _fileStorageService.GetFileUrlAsync(multitrackResult, TimeSpan.FromDays(365));
-                }
+                // Convert to absolute URL for consistent database storage
+                command.MultitrackZipUrl = GenerateAbsoluteFileUrl(multitrackResult);
 
                 _logger.LogInformation("Multitrack zip uploaded successfully: {Url}", command.MultitrackZipUrl);
 
@@ -573,17 +555,8 @@ namespace MixWarz.API.Controllers
 
                 var sourceTrackResult = await _fileStorageService.UploadFileAsync(command.SourceTrackFile, "competition-source-tracks");
 
-                // Check if result is already a valid URL (absolute or relative from MockFileStorageService)
-                if (Uri.TryCreate(sourceTrackResult, UriKind.Absolute, out _) || sourceTrackResult.StartsWith("/uploads/"))
-                {
-                    // Already a valid URL, use directly
-                    command.SourceTrackUrl = sourceTrackResult;
-                }
-                else
-                {
-                    // File key, generate URL
-                    command.SourceTrackUrl = await _fileStorageService.GetFileUrlAsync(sourceTrackResult, TimeSpan.FromDays(365));
-                }
+                // Convert to absolute URL for consistent database storage
+                command.SourceTrackUrl = GenerateAbsoluteFileUrl(sourceTrackResult);
 
                 _logger.LogInformation("Source track uploaded successfully: {Url}", command.SourceTrackUrl);
 
@@ -599,6 +572,43 @@ namespace MixWarz.API.Controllers
 
             _logger.LogInformation("Final URL values - ImageUrl: {ImageUrl}, MultitrackZipUrl: {MultitrackZipUrl}, SourceTrackUrl: {SourceTrackUrl}",
                 command.ImageUrl ?? "null", command.MultitrackZipUrl ?? "null", command.SourceTrackUrl ?? "null");
+        }
+
+        /// <summary>
+        /// Generates a correct absolute URL for file storage that will work with the media player.
+        /// Converts relative URLs from file storage service to absolute URLs for database storage.
+        /// </summary>
+        /// <param name="fileStorageResult">The result from IFileStorageService.UploadFileAsync</param>
+        /// <returns>Absolute URL in format: https://localhost:7001/uploads/directory/filename.ext</returns>
+        private string GenerateAbsoluteFileUrl(string fileStorageResult)
+        {
+            if (string.IsNullOrEmpty(fileStorageResult))
+                return fileStorageResult;
+
+            // If already absolute, return as-is
+            if (fileStorageResult.StartsWith("http://") || fileStorageResult.StartsWith("https://"))
+            {
+                _logger.LogInformation("File storage returned absolute URL: {Url}", fileStorageResult);
+                return fileStorageResult;
+            }
+
+            // Get the base URL from the current request
+            var scheme = Request.Scheme; // http or https
+            var host = Request.Host.Value; // localhost:7001
+            var baseUrl = $"{scheme}://{host}";
+
+            // Remove leading slash from file storage result if present
+            var cleanPath = fileStorageResult.StartsWith("/") ? fileStorageResult.Substring(1) : fileStorageResult;
+
+            // Construct absolute URL
+            var absoluteUrl = $"{baseUrl}/{cleanPath}";
+
+            // Clean up any duplicate /uploads/ patterns that might exist
+            absoluteUrl = absoluteUrl.Replace("/uploads/uploads/", "/uploads/");
+
+            _logger.LogInformation("Generated absolute URL: {FileStorageResult} → {AbsoluteUrl}", fileStorageResult, absoluteUrl);
+
+            return absoluteUrl;
         }
 
         private void ValidateCoverImage(IFormFile file)
@@ -650,51 +660,133 @@ namespace MixWarz.API.Controllers
         {
             try
             {
-                Console.WriteLine($"CONTROLLER: Received update request for competition {competitionId} with UpdateCompetitionCommand.");
+                _logger.LogInformation("==================== BEGIN COMPETITION UPDATE ====================");
+                _logger.LogInformation("Received UpdateCompetition request for competition {CompetitionId}", competitionId);
 
-                // Log what the model binder deserialized into the command object
-                Console.WriteLine($"CONTROLLER: Command.CompetitionId from binding: {command.CompetitionId}");
-                Console.WriteLine($"CONTROLLER: Command.Title from binding: {command.Title ?? "null"}");
-                Console.WriteLine($"CONTROLLER: Command.MultitrackZipUrl from binding: {command.MultitrackZipUrl ?? "null"}");
-                Console.WriteLine($"CONTROLLER: Command.MultitrackZipFile from binding: {(command.MultitrackZipFile == null ? "null" : $"File: {command.MultitrackZipFile.FileName}, Length: {command.MultitrackZipFile.Length}")}");
-                Console.WriteLine($"CONTROLLER: Command.ImageUrl from binding: {command.ImageUrl ?? "null"}");
-                Console.WriteLine($"CONTROLLER: Command.CoverImage from binding: {(command.CoverImage == null ? "null" : $"File: {command.CoverImage.FileName}, Length: {command.CoverImage.Length}")}");
+                if (command == null)
+                {
+                    _logger.LogWarning("Command object is null");
+                    return BadRequest(new { Success = false, Message = "Invalid request body" });
+                }
 
+                // Log key request information
+                _logger.LogInformation("Title: {Title}", command.Title ?? "null");
+                _logger.LogInformation("Cover image present: {CoverImagePresent}", command.CoverImage != null);
+                _logger.LogInformation("Multitrack file present: {MultitrackFilePresent}", command.MultitrackZipFile != null);
+                _logger.LogInformation("Source track file present: {SourceTrackFilePresent}", command.SourceTrackFile != null);
 
-                // Set the ID for the update from the route parameter, ensuring it's correctly passed to the handler
+                // STEP 1: Process file uploads and generate URLs BEFORE validation
+                await ProcessFileUploadsForUpdateAsync(command);
+
+                // STEP 2: Set the ID for the update from the route parameter
                 command.CompetitionId = competitionId;
 
-                // IMPORTANT: Always ensure OrganizerUserId is set by getting it from the current user
+                // STEP 3: Set organizer user ID from claims
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                Console.WriteLine($"Setting organizer ID from claims: {userId}");
+                _logger.LogInformation("Setting organizer ID from claims: {UserId}", userId);
                 command.OrganizerUserId = userId;
 
-                var result = await _mediator.Send(command); // This now sends UpdateCompetitionCommand
+                // STEP 4: Send command to MediatR (validation will now have URLs available)
+                _logger.LogInformation("Sending command to MediatR handler...");
+                var result = await _mediator.Send(command);
 
                 if (!result.Success)
                 {
-                    Console.WriteLine($"CONTROLLER: Failed to update competition: {result.Message}");
+                    _logger.LogWarning("Competition update failed: {Message}", result.Message);
                     if (result.Errors != null && result.Errors.Any())
                     {
-                        Console.WriteLine("CONTROLLER: Validation errors from handler/validator:");
+                        _logger.LogWarning("Validation errors from handler/validator:");
                         foreach (var error in result.Errors)
                         {
-                            Console.WriteLine($"  - {error}");
+                            _logger.LogWarning("  - {Error}", error);
                         }
                     }
-                    // The result from the handler (which includes validation errors) is returned
                     return BadRequest(result);
                 }
 
-                Console.WriteLine($"CONTROLLER: Successfully updated competition {competitionId}");
+                _logger.LogInformation("Competition updated successfully with ID: {CompetitionId}", competitionId);
+                _logger.LogInformation("==================== END COMPETITION UPDATE ====================");
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"CONTROLLER: Exception in UpdateCompetition: {ex.Message}");
-                Console.WriteLine($"CONTROLLER: Stack trace: {ex.StackTrace}");
-                return StatusCode(500, new UpdateCompetitionResponse { Success = false, Message = $"An error occurred: {ex.Message}" });
+                _logger.LogError(ex, "Exception in UpdateCompetition: {Message}", ex.Message);
+                _logger.LogInformation("==================== END COMPETITION UPDATE (WITH ERROR) ====================");
+
+                return StatusCode(500, new UpdateCompetitionResponse
+                {
+                    Success = false,
+                    Message = $"An error occurred: {ex.Message}"
+                });
             }
+        }
+
+        private async Task ProcessFileUploadsForUpdateAsync(UpdateCompetitionCommand command)
+        {
+            // Added comprehensive logging for debugging
+            _logger.LogInformation("Processing file uploads for update...");
+            _logger.LogInformation("Initial URL values - ImageUrl: {ImageUrl}, MultitrackZipUrl: {MultitrackZipUrl}, SourceTrackUrl: {SourceTrackUrl}",
+                command.ImageUrl ?? "null", command.MultitrackZipUrl ?? "null", command.SourceTrackUrl ?? "null");
+
+            // Process cover image upload
+            if (command.CoverImage != null)
+            {
+                ValidateCoverImage(command.CoverImage);
+
+                _logger.LogInformation("Processing cover image: {FileName}, size: {Size} KB",
+                    command.CoverImage.FileName, command.CoverImage.Length / 1024);
+
+                var coverImageResult = await _fileStorageService.UploadFileAsync(command.CoverImage, "competition-covers");
+
+                // Convert to absolute URL for consistent database storage
+                command.ImageUrl = GenerateAbsoluteFileUrl(coverImageResult);
+
+                _logger.LogInformation("Cover image uploaded successfully: {Url}", command.ImageUrl);
+
+                // Clear the file reference since we now have the URL
+                command.CoverImage = null;
+            }
+
+            // Process multitrack zip upload
+            if (command.MultitrackZipFile != null)
+            {
+                ValidateMultitrackZipFile(command.MultitrackZipFile);
+
+                _logger.LogInformation("Processing multitrack zip: {FileName}, size: {Size} KB",
+                    command.MultitrackZipFile.FileName, command.MultitrackZipFile.Length / 1024);
+
+                var multitrackResult = await _fileStorageService.UploadFileAsync(command.MultitrackZipFile, "competition-multitracks");
+
+                // Convert to absolute URL for consistent database storage
+                command.MultitrackZipUrl = GenerateAbsoluteFileUrl(multitrackResult);
+
+                _logger.LogInformation("Multitrack zip uploaded successfully: {Url}", command.MultitrackZipUrl);
+
+                // Clear the file reference since we now have the URL
+                command.MultitrackZipFile = null;
+            }
+
+            // Process source track upload
+            if (command.SourceTrackFile != null)
+            {
+                ValidateSourceTrackFile(command.SourceTrackFile);
+
+                _logger.LogInformation("Processing source track: {FileName}, size: {Size} KB",
+                    command.SourceTrackFile.FileName, command.SourceTrackFile.Length / 1024);
+
+                var sourceTrackResult = await _fileStorageService.UploadFileAsync(command.SourceTrackFile, "competition-source-tracks");
+
+                // Convert to absolute URL for consistent database storage
+                command.SourceTrackUrl = GenerateAbsoluteFileUrl(sourceTrackResult);
+
+                _logger.LogInformation("Source track uploaded successfully: {Url}", command.SourceTrackUrl);
+
+                // Clear the file reference since we now have the URL
+                command.SourceTrackFile = null;
+            }
+
+            _logger.LogInformation("Final URL values - ImageUrl: {ImageUrl}, MultitrackZipUrl: {MultitrackZipUrl}, SourceTrackUrl: {SourceTrackUrl}",
+                command.ImageUrl ?? "null", command.MultitrackZipUrl ?? "null", command.SourceTrackUrl ?? "null");
         }
 
         // PUT api/v1/admin/orders/{orderId}/status

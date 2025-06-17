@@ -81,6 +81,78 @@ namespace MixWarz.Infrastructure.Persistence.Repositories
             return await _context.Competitions.CountAsync(c => c.Status == status);
         }
 
+        public async Task<IEnumerable<Competition>> GetFilteredAsync(
+            CompetitionStatus? status = null,
+            Genre? genre = null,
+            string? searchTerm = null,
+            int page = 1,
+            int pageSize = 10)
+        {
+            var query = _context.Competitions
+                .Include(c => c.Organizer)
+                .AsQueryable();
+
+            // Apply status filter
+            if (status.HasValue)
+            {
+                query = query.Where(c => c.Status == status.Value);
+            }
+
+            // Apply genre filter
+            if (genre.HasValue)
+            {
+                query = query.Where(c => c.Genre == genre.Value);
+            }
+
+            // Apply search term filter
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                searchTerm = searchTerm.ToLower();
+                query = query.Where(c =>
+                    c.Title.ToLower().Contains(searchTerm) ||
+                    c.Description.ToLower().Contains(searchTerm) ||
+                    c.SongCreator.ToLower().Contains(searchTerm));
+            }
+
+            return await query
+                .OrderByDescending(c => c.CreationDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetFilteredCountAsync(
+            CompetitionStatus? status = null,
+            Genre? genre = null,
+            string? searchTerm = null)
+        {
+            var query = _context.Competitions.AsQueryable();
+
+            // Apply status filter
+            if (status.HasValue)
+            {
+                query = query.Where(c => c.Status == status.Value);
+            }
+
+            // Apply genre filter
+            if (genre.HasValue)
+            {
+                query = query.Where(c => c.Genre == genre.Value);
+            }
+
+            // Apply search term filter
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                searchTerm = searchTerm.ToLower();
+                query = query.Where(c =>
+                    c.Title.ToLower().Contains(searchTerm) ||
+                    c.Description.ToLower().Contains(searchTerm) ||
+                    c.SongCreator.ToLower().Contains(searchTerm));
+            }
+
+            return await query.CountAsync();
+        }
+
         public async Task<(IEnumerable<Competition> Competitions, int TotalCount)> GetCompetitionsForAdminAsync(
             string organizerId,
             CompetitionStatus? status,

@@ -137,14 +137,14 @@ const MainNavbar = () => {
                 </NavDropdown.Item>
                 <NavDropdown.Item
                   as={Link}
-                  to="/submissions"
+                  to="/profile"
                   className="dropdown-item"
                 >
                   My Submissions
                 </NavDropdown.Item>
                 <NavDropdown.Item
                   as={Link}
-                  to="/purchases"
+                  to="/profile?tab=purchases"
                   className="dropdown-item"
                 >
                   My Purchases

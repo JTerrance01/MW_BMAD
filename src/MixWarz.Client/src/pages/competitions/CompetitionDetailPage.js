@@ -359,6 +359,37 @@ const CompetitionDetailPage = () => {
     });
   };
 
+  // Process audio URL to handle relative paths correctly
+  const processAudioUrl = (url) => {
+    if (!url) return url;
+    
+    console.log(`🔧 [CompetitionDetail] Processing audio URL: ${url}`);
+    
+    // If already absolute, just clean up any duplicate uploads and return
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const cleanedUrl = url.replace(/\/uploads\/uploads\//g, '/uploads/');
+      console.log(`🔧 [CompetitionDetail] Cleaned absolute URL: ${cleanedUrl}`);
+      return cleanedUrl;
+    }
+    
+    // For relative URLs, make them absolute
+    const baseUrl = process.env.REACT_APP_API_URL || 'https://localhost:7001';
+    
+    // Remove leading slash if present, then add base URL
+    const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+    const absoluteUrl = `${baseUrl}/${cleanPath}`;
+    
+    // Clean up any duplicate uploads patterns
+    const finalUrl = absoluteUrl.replace(/\/uploads\/uploads\//g, '/uploads/');
+    
+    console.log(`🔧 [CompetitionDetail] Input: ${url}`);
+    console.log(`🔧 [CompetitionDetail] Clean path: ${cleanPath}`);
+    console.log(`🔧 [CompetitionDetail] Absolute URL: ${absoluteUrl}`);
+    console.log(`🔧 [CompetitionDetail] Final URL: ${finalUrl}`);
+    
+    return finalUrl;
+  };
+
   // Navigate to submission page or user's submission section
   const handleSubmit = () => {
     // If user has already submitted, scroll to their submission
@@ -712,7 +743,7 @@ const CompetitionDetailPage = () => {
                         }}
                         className="rounded"
                       >
-                        <source src={competition.sourceTrackUrl} type="audio/mpeg" />
+                        <source src={processAudioUrl(competition.sourceTrackUrl)} type="audio/mpeg" />
                         Your browser does not support the audio element.
                       </audio>
                     </Card.Body>
@@ -767,7 +798,6 @@ const CompetitionDetailPage = () => {
             isAuthenticated &&
             !loadingUserSubmission &&
             !hasSubmittedToCompetition() &&
-            userSubmission === null &&
             new Date(competition?.submissionDeadline) >= new Date() && (
               <Alert 
                 variant="info" 

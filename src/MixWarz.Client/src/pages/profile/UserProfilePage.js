@@ -12,7 +12,7 @@ import {
   Alert,
   Spinner,
 } from "react-bootstrap";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   FaUser,
@@ -22,6 +22,7 @@ import {
 } from "react-icons/fa";
 import { createImagePreview } from "../../utils/fileUtils";
 import UserSubmissionsList from "../../components/profile/UserSubmissionsList";
+import UserPurchasesList from "../../components/profile/UserPurchasesList";
 // import UserActivityStats from "../../components/profile/UserActivityStats";
 // import UserActivityHistory from "../../components/profile/UserActivityHistory";
 import * as activityTracker from "../../utils/activityTracker";
@@ -34,6 +35,7 @@ import { updateUserProfile } from "../../store/authSlice";
 const UserProfilePage = () => {
   const { username } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const { handleError } = useError();
   const dispatch = useDispatch();
@@ -55,6 +57,16 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isCurrentUser, setIsCurrentUser] = useState(false);
+
+  // Get active tab from URL parameters, default to "submissions"
+  const activeTab = searchParams.get('tab') || 'submissions';
+
+  // Handle tab selection
+  const handleTabSelect = (tabKey) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set('tab', tabKey);
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
+  };
 
   // Bio editing states
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -906,9 +918,13 @@ const UserProfilePage = () => {
         <Col lg={8} md={7}>
           <Card className="shadow-sm border-0 mb-4">
             <Card.Body>
-              <Tabs defaultActiveKey="submissions" className="mb-3">
+              <Tabs activeKey={activeTab} onSelect={handleTabSelect} className="mb-3">
                 <Tab eventKey="submissions" title="Submissions">
                   <UserSubmissionsList isCurrentUser={isCurrentUser} />
+                </Tab>
+
+                <Tab eventKey="purchases" title="Purchases">
+                  <UserPurchasesList isCurrentUser={isCurrentUser} />
                 </Tab>
 
                 {/* FUTURE: Competitions Tab - Temporarily disabled

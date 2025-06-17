@@ -10,6 +10,8 @@ using MixWarz.Application.Features.UserProfile.Commands.UpdateUserProfile;
 using MixWarz.Application.Features.UserProfile.Commands.UpdateUserPassword;
 using MixWarz.Application.Features.UserProfile.Commands.UpdateUserNotificationPreferences;
 using MixWarz.Application.Features.UserProfile.Queries.GetNewestUsers;
+using MixWarz.Application.Features.UserProfile.Queries.GetUserPurchases;
+using MixWarz.Domain.Enums;
 
 namespace MixWarz.API.Controllers
 {
@@ -622,6 +624,52 @@ namespace MixWarz.API.Controllers
                 {
                     Success = false,
                     Message = "An error occurred while updating notification preferences"
+                });
+            }
+        }
+
+        [HttpGet("purchases")]
+        public async Task<ActionResult<UserPurchasesVm>> GetUserPurchases(
+            [FromQuery] string? status = null,
+            [FromQuery] string? type = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                // Get the current authenticated user's ID from claims
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                // Parse status if provided
+                OrderStatus? orderStatus = null;
+                if (!string.IsNullOrEmpty(status) && Enum.TryParse<OrderStatus>(status, true, out var parsedStatus))
+                {
+                    orderStatus = parsedStatus;
+                }
+
+                var query = new GetUserPurchasesQuery
+                {
+                    UserId = userId,
+                    Status = orderStatus,
+                    Type = type,
+                    Page = page,
+                    PageSize = pageSize
+                };
+
+                var result = await _mediator.Send(query);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while retrieving user purchases",
+                    error = ex.Message
                 });
             }
         }

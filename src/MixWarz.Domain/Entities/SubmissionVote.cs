@@ -45,8 +45,8 @@ namespace MixWarz.Domain.Entities
         public string? Comment { get; set; }
 
         // Navigation properties
-        public virtual Submission Submission { get; set; }
-        public virtual User Voter { get; set; }
-        public virtual Competition Competition { get; set; }
+        public virtual Submission Submission { get; set; } = null!;
+        public virtual User Voter { get; set; } = null!;
+        public virtual Competition Competition { get; set; } = null!;
     }
 }

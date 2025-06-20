@@ -20,9 +20,7 @@ using MixWarz.Application.Features.Products.Commands.UpdateProduct;
 using MixWarz.Application.Features.Admin.Commands.CreateCompetition;
 using System.Security.Claims;
 using MixWarz.Application.Features.Admin.Commands.UpdateOrderStatus;
-using Microsoft.AspNetCore.Http.Features;
 using MixWarz.Application.Features.Admin.Commands.UpdateCompetition;
-using MixWarz.Application.Common.Interfaces;
 using MixWarz.Domain.Interfaces;
 
 namespace MixWarz.API.Controllers

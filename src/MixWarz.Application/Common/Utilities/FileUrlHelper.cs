@@ -1,4 +1,6 @@
 using MixWarz.Domain.Interfaces;
+using System;
+using System.Text.RegularExpressions;
 
 namespace MixWarz.Application.Common.Utilities
 {
@@ -8,6 +10,9 @@ namespace MixWarz.Application.Common.Utilities
     /// </summary>
     public static class FileUrlHelper
     {
+        private const string DEFAULT_BASE_URL = "https://localhost:7001";
+        private const string UPLOADS_PATH = "uploads";
+
         /// <summary>
         /// Resolves a file path or URL to a valid accessible URL.
         /// If the input is already a full URL, returns it directly.
@@ -62,6 +67,168 @@ namespace MixWarz.Application.Common.Utilities
         {
             return Uri.TryCreate(input, UriKind.Absolute, out var uri) &&
                    (uri.Scheme == "http" || uri.Scheme == "https");
+        }
+
+        /// <summary>
+        /// Processes a file URL to ensure it's in the correct format
+        /// Handles both cleaning duplicate paths and ensuring absolute URL format
+        /// </summary>
+        /// <param name="url">The URL to process</param>
+        /// <param name="baseUrl">The base URL to use (optional, defaults to https://localhost:7001)</param>
+        /// <returns>A properly formatted absolute URL</returns>
+        public static string ProcessFileUrl(string url, string? baseUrl = null)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            // First, clean any duplicate path segments
+            url = CleanDuplicatePaths(url);
+
+            // Then ensure it's an absolute URL
+            return EnsureAbsoluteUrl(url, baseUrl);
+        }
+
+        /// <summary>
+        /// Ensures the URL is in absolute format
+        /// </summary>
+        /// <param name="url">The URL to process</param>
+        /// <param name="baseUrl">The base URL to use (optional)</param>
+        /// <returns>An absolute URL</returns>
+        public static string EnsureAbsoluteUrl(string url, string? baseUrl = null)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            // If already absolute, just clean it and return
+            if (url.StartsWith("http://") || url.StartsWith("https://"))
+            {
+                return CleanDuplicatePaths(url);
+            }
+
+            // Use provided base URL or default
+            var effectiveBaseUrl = baseUrl ?? DEFAULT_BASE_URL;
+
+            // Remove leading slash if present to avoid double slashes
+            var cleanPath = url.StartsWith("/") ? url.Substring(1) : url;
+
+            // Construct absolute URL
+            var absoluteUrl = $"{effectiveBaseUrl}/{cleanPath}";
+
+            // Clean any duplicate paths that might have been created
+            return CleanDuplicatePaths(absoluteUrl);
+        }
+
+        /// <summary>
+        /// Removes duplicate path segments from a URL
+        /// For example: /uploads/uploads/file.mp3 becomes /uploads/file.mp3
+        /// </summary>
+        /// <param name="url">The URL to clean</param>
+        /// <returns>URL with duplicate path segments removed</returns>
+        public static string CleanDuplicatePaths(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return url;
+
+            // Common duplicate patterns to fix
+            var patterns = new[]
+            {
+                @"(/uploads/)+uploads/", // Matches /uploads/uploads/ or multiple uploads
+                @"(\\uploads\\)+uploads\\", // Windows path version
+                @"(/api/)+api/", // API duplicates
+                @"(/v1/)+v1/", // Version duplicates
+            };
+
+            foreach (var pattern in patterns)
+            {
+                url = Regex.Replace(url, pattern, "$1", RegexOptions.IgnoreCase);
+            }
+
+            // Also handle the specific case of duplicate 'uploads' in the path
+            url = url.Replace("/uploads/uploads/", "/uploads/");
+            url = url.Replace("\\uploads\\uploads\\", "\\uploads\\");
+
+            return url;
+        }
+
+        /// <summary>
+        /// Extracts the relative path from an absolute URL
+        /// </summary>
+        /// <param name="absoluteUrl">The absolute URL</param>
+        /// <returns>The relative path portion</returns>
+        public static string GetRelativePath(string absoluteUrl)
+        {
+            if (string.IsNullOrEmpty(absoluteUrl))
+                return absoluteUrl;
+
+            // If it's not an absolute URL, it's already relative
+            if (!absoluteUrl.StartsWith("http://") && !absoluteUrl.StartsWith("https://"))
+                return absoluteUrl;
+
+            // Parse the URL and extract the path portion
+            try
+            {
+                var uri = new Uri(absoluteUrl);
+                return uri.AbsolutePath;
+            }
+            catch
+            {
+                // If parsing fails, return the original
+                return absoluteUrl;
+            }
+        }
+
+        /// <summary>
+        /// Ensures a file key doesn't have duplicate path prefixes
+        /// Used when constructing file storage paths
+        /// </summary>
+        /// <param name="fileKey">The file key to process</param>
+        /// <param name="expectedPrefix">The expected prefix (e.g., "uploads")</param>
+        /// <returns>A properly formatted file key</returns>
+        public static string EnsureProperFileKey(string fileKey, string expectedPrefix)
+        {
+            if (string.IsNullOrEmpty(fileKey))
+                return fileKey;
+
+            // Remove leading slashes
+            fileKey = fileKey.TrimStart('/', '\\');
+
+            // If the fileKey already starts with the expected prefix, don't add it again
+            if (fileKey.StartsWith(expectedPrefix + "/", StringComparison.OrdinalIgnoreCase) ||
+                fileKey.StartsWith(expectedPrefix + "\\", StringComparison.OrdinalIgnoreCase))
+            {
+                return fileKey;
+            }
+
+            // Otherwise, prepend the expected prefix
+            return $"{expectedPrefix}/{fileKey}";
+        }
+
+        /// <summary>
+        /// URL encodes the filename portion of a path while preserving the directory structure
+        /// </summary>
+        /// <param name="filePath">The file path to encode</param>
+        /// <returns>Path with encoded filename</returns>
+        public static string EncodeFilePath(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                return filePath;
+
+            // Split the path into directory and filename
+            var lastSlashIndex = filePath.LastIndexOfAny(new[] { '/', '\\' });
+            if (lastSlashIndex < 0)
+            {
+                // No directory, just encode the whole thing
+                return Uri.EscapeDataString(filePath);
+            }
+
+            var directory = filePath.Substring(0, lastSlashIndex);
+            var filename = filePath.Substring(lastSlashIndex + 1);
+
+            // URL encode only the filename
+            var encodedFilename = Uri.EscapeDataString(filename);
+
+            // Reconstruct the path
+            return $"{directory}/{encodedFilename}";
         }
     }
 }

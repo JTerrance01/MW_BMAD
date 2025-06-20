@@ -6,12 +6,12 @@ namespace MixWarz.Domain.Entities
     {
         public int BlogArticleId { get; set; }
         public int BlogCategoryId { get; set; }
-        
+
         // Navigation properties
         [ForeignKey("BlogArticleId")]
-        public virtual BlogArticle BlogArticle { get; set; }
-        
+        public virtual BlogArticle BlogArticle { get; set; } = null!;
+
         [ForeignKey("BlogCategoryId")]
-        public virtual BlogCategory BlogCategory { get; set; }
+        public virtual BlogCategory BlogCategory { get; set; } = null!;
     }
-} 
+}

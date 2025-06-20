@@ -21,7 +21,7 @@ import {
 } from "react-icons/fa";
 import { fetchCompetitionResults } from "../../store/competitionSlice";
 import { getStatusDisplayText } from "../../utils/competitionUtils";
-import SimpleAudioPlayer from "../../components/competitions/SimpleAudioPlayer";
+import SimpleResultsAudioPlayer from "../../components/competitions/SimpleResultsAudioPlayer";
 
 const CompetitionResultsPage = () => {
   const { id } = useParams();
@@ -41,7 +41,7 @@ const CompetitionResultsPage = () => {
   // Local state for UI
   const [playingAudio, setPlayingAudio] = useState(null);
 
-  // Handle audio playback state changes from SimpleAudioPlayer
+  // Handle audio playback state changes from EnhancedAudioPlayer
   const handlePlayStateChange = (submissionId, isPlaying) => {
     if (isPlaying) {
       // Stop any other audio that might be playing
@@ -88,9 +88,24 @@ const CompetitionResultsPage = () => {
     // Handle URLs that start with uploads/ (relative paths)
     if (url.startsWith('uploads/') || url.startsWith('/uploads/')) {
       const baseUrl = process.env.REACT_APP_API_URL || 'https://localhost:7001';
-      const cleanUrl = `${baseUrl}/${url.startsWith('/') ? url.slice(1) : url}`;
+      let cleanPath = url.startsWith('/') ? url.slice(1) : url;
+      
+      // Fix double uploads/ in path (e.g., "uploads/uploads/submissions/..." -> "uploads/submissions/...")
+      if (cleanPath.startsWith('uploads/uploads/')) {
+        cleanPath = cleanPath.replace('uploads/uploads/', 'uploads/');
+        console.log(`🔧 [CompetitionResults] Fixed double uploads path: ${cleanPath}`);
+      }
+      
+      const cleanUrl = `${baseUrl}/${cleanPath}`;
       console.log(`🔧 [CompetitionResults] Built absolute URL: ${cleanUrl}`);
       return cleanUrl;
+    }
+    
+    // Handle full URLs that have double uploads/ in the path
+    if (url.includes('/uploads/uploads/')) {
+      const fixedUrl = url.replace(/\/uploads\/uploads\//g, '/uploads/');
+      console.log(`🔧 [CompetitionResults] Fixed double uploads in full URL: ${fixedUrl}`);
+      return fixedUrl;
     }
     
     // Return as-is if it's already a valid URL
@@ -237,6 +252,10 @@ const CompetitionResultsPage = () => {
   const winners = competitionResults?.winners || [];
   const results = competitionResults?.results || [];
   const songCreatorPicks = []; // Not implemented in backend yet
+  
+  // Debug log to see what data we're receiving
+  console.log(`🏆 [CompetitionResults] Winners data:`, winners);
+  console.log(`🏆 [CompetitionResults] First winner audioUrl:`, winners[0]?.audioUrl);
 
   return (
     <Container className="py-5">
@@ -327,7 +346,7 @@ const CompetitionResultsPage = () => {
                         {/* Only show audio player for 1st place winner */}
                         {index === 0 && winner.audioUrl && (
                           <div className="mt-auto d-flex align-items-center gap-2">
-                            <SimpleAudioPlayer
+                            <SimpleResultsAudioPlayer
                               audioUrl={processAudioUrl(winner.audioUrl)}
                               submissionId={winner.id}
                               onPlayStateChange={handlePlayStateChange}
@@ -396,7 +415,7 @@ const CompetitionResultsPage = () => {
 
                       {pick.audioUrl && (
                         <div className="mb-3 d-flex align-items-center gap-2">
-                          <SimpleAudioPlayer
+                          <SimpleResultsAudioPlayer
                             audioUrl={processAudioUrl(pick.audioUrl)}
                             submissionId={pick.id}
                             onPlayStateChange={handlePlayStateChange}

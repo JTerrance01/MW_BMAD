@@ -1,6 +1,7 @@
 using MediatR;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
+using MixWarz.Application.Common.Utilities;
 
 namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionResults
 {
@@ -118,7 +119,10 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionResult
                 {
                     try
                     {
-                        audioUrl = await _fileStorageService.GetFileUrlAsync(
+                        // Use FileUrlHelper.ResolveFileUrlAsync for consistent URL handling
+                        // This properly handles React proxy compatibility for localhost development
+                        audioUrl = await FileUrlHelper.ResolveFileUrlAsync(
+                            _fileStorageService,
                             submission.AudioFilePath,
                             TimeSpan.FromHours(2)); // 2-hour expiration for results viewing
                     }

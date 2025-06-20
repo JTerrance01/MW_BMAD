@@ -60,10 +60,10 @@ namespace MixWarz.Domain.Entities
         public DateTime Round2VotingEndDate { get; set; }
 
         // Comma-separated list of artists, writers, producers
-        public string SongCreator { get; set; }
+        public string SongCreator { get; set; } = string.Empty;
 
         // Navigation properties
-        public virtual User Organizer { get; set; }
+        public virtual User Organizer { get; set; } = null!;
         public virtual ICollection<Submission> Submissions { get; set; } = [];
     }
 }

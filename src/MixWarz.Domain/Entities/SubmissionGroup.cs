@@ -45,7 +45,7 @@ namespace MixWarz.Domain.Entities
         public int? RankInGroup { get; set; }
 
         // Navigation properties
-        public virtual Competition Competition { get; set; }
-        public virtual Submission Submission { get; set; }
+        public virtual Competition Competition { get; set; } = null!;
+        public virtual Submission Submission { get; set; } = null!;
     }
 }

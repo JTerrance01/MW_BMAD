@@ -2,9 +2,7 @@ using Microsoft.Extensions.Logging;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
 using Quartz;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+
 
 namespace MixWarz.Infrastructure.Jobs
 {

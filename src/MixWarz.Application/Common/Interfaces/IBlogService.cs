@@ -10,22 +10,22 @@ namespace MixWarz.Application.Common.Interfaces
         Task<IEnumerable<BlogCategory>> GetAllCategoriesAsync();
         Task<BlogCategory> GetCategoryByIdAsync(int id);
         Task<BlogCategory> GetCategoryBySlugAsync(string slug);
-        Task<BlogCategory> CreateCategoryAsync(string name, string slug = null);
-        Task<BlogCategory> UpdateCategoryAsync(int id, string name, string slug = null);
+        Task<BlogCategory> CreateCategoryAsync(string name, string? slug = null);
+        Task<BlogCategory> UpdateCategoryAsync(int id, string name, string? slug = null);
         Task<bool> DeleteCategoryAsync(int id);
         Task<bool> CategoryExistsAsync(int id);
         Task<bool> CategorySlugExistsAsync(string slug);
-        
+
         // Tag operations
         Task<IEnumerable<BlogTag>> GetAllTagsAsync();
         Task<BlogTag> GetTagByIdAsync(int id);
         Task<BlogTag> GetTagBySlugAsync(string slug);
-        Task<BlogTag> CreateTagAsync(string name, string slug = null);
-        Task<BlogTag> UpdateTagAsync(int id, string name, string slug = null);
+        Task<BlogTag> CreateTagAsync(string name, string? slug = null);
+        Task<BlogTag> UpdateTagAsync(int id, string name, string? slug = null);
         Task<bool> DeleteTagAsync(int id);
         Task<bool> TagExistsAsync(int id);
         Task<bool> TagSlugExistsAsync(string slug);
-        
+
         // Article operations
         Task<IEnumerable<BlogArticle>> GetArticlesAsync(int pageNumber = 1, int pageSize = 10, string? categorySlug = null, string? tagSlug = null, string? search = null);
         Task<IEnumerable<BlogArticle>> GetAllArticlesForAdminAsync(int pageNumber = 1, int pageSize = 10, string? categorySlug = null, string? tagSlug = null, string? search = null);
@@ -38,4 +38,4 @@ namespace MixWarz.Application.Common.Interfaces
         Task<bool> ArticleExistsAsync(int id);
         Task<bool> ArticleSlugExistsAsync(string slug);
     }
-} 
+}

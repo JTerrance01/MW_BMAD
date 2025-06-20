@@ -36,7 +36,7 @@ namespace MixWarz.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
-        public virtual Competition Competition { get; set; }
-        public virtual Submission Submission { get; set; }
+        public virtual Competition Competition { get; set; } = null!;
+        public virtual Submission Submission { get; set; } = null!;
     }
 }

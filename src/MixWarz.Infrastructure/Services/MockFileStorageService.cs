@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using MixWarz.Domain.Interfaces;
+using MixWarz.Application.Common.Utilities;
 
 namespace MixWarz.Infrastructure.Services
 {
@@ -74,9 +75,15 @@ namespace MixWarz.Infrastructure.Services
             // URL encode the file key to handle filenames with spaces and special characters
             var encodedFileKey = EncodeFileKey(fileKey);
 
-            // Return a relative URL that the React proxy can handle
-            // This allows the React app to access the files through its proxy to the API
-            var url = $"/uploads/{encodedFileKey}";
+            // Use FileUrlHelper to ensure proper file key format
+            encodedFileKey = FileUrlHelper.EnsureProperFileKey(encodedFileKey, "uploads");
+
+            // Construct the URL
+            var url = $"/{encodedFileKey}";
+
+            // Clean any duplicate paths
+            url = FileUrlHelper.CleanDuplicatePaths(url);
+
             Console.WriteLine($"[MOCK] Returning relative URL: {url}");
 
             return Task.FromResult(url);
@@ -89,9 +96,15 @@ namespace MixWarz.Infrastructure.Services
             // URL encode the file key to handle filenames with spaces and special characters
             var encodedFileKey = EncodeFileKey(fileKey);
 
-            // Return a relative URL that the React proxy can handle
-            // This allows the React app to access the files through its proxy to the API
-            var url = $"/uploads/{encodedFileKey}";
+            // Use FileUrlHelper to ensure proper file key format
+            encodedFileKey = FileUrlHelper.EnsureProperFileKey(encodedFileKey, "uploads");
+
+            // Construct the URL
+            var url = $"/{encodedFileKey}";
+
+            // Clean any duplicate paths
+            url = FileUrlHelper.CleanDuplicatePaths(url);
+
             Console.WriteLine($"[MOCK] Returning relative presigned URL: {url}");
 
             return Task.FromResult(url);
@@ -140,7 +153,11 @@ namespace MixWarz.Infrastructure.Services
 
                 // Return a relative URL instead of absolute URL for consistency with proxy setup
                 var encodedFileKey = EncodeFileKey(fileKey);
-                var relativeUrl = $"/uploads/{encodedFileKey}";
+
+                // Use FileUrlHelper to ensure proper format and no duplicate paths
+                encodedFileKey = FileUrlHelper.EnsureProperFileKey(encodedFileKey, "uploads");
+                var relativeUrl = $"/{encodedFileKey}";
+                relativeUrl = FileUrlHelper.CleanDuplicatePaths(relativeUrl);
 
                 Console.WriteLine($"[MOCK] Successfully uploaded file: {fileKey}");
                 Console.WriteLine($"[MOCK] Returning relative URL: {relativeUrl}");

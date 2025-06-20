@@ -23,6 +23,8 @@ namespace MixWarz.Domain.Entities
 
         public User()
         {
+            FirstName = string.Empty;
+            LastName = string.Empty;
             GalleryImages = new HashSet<UserProfileGalleryImage>();
             AudioFiles = new HashSet<UserProfileAudioFile>();
         }

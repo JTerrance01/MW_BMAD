@@ -41,7 +41,7 @@ namespace MixWarz.Domain.Entities
         public DateTimeOffset? VotingCompletedDate { get; set; }
 
         // Navigation properties
-        public virtual Competition Competition { get; set; }
-        public virtual User Voter { get; set; }
+        public virtual Competition Competition { get; set; } = null!;
+        public virtual User Voter { get; set; } = null!;
     }
 }

@@ -1,0 +1,61 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=MixWarz;Username=YOUR_USERNAME;Password=YOUR_PASSWORD;Pooling=true;Minimum Pool Size=5;Maximum Pool Size=100;Timeout=30;"
+  },
+  "Jwt": {
+    "Key": "YOUR_JWT_SECRET_KEY_HERE_MINIMUM_256_BITS",
+    "Issuer": "MixWarz",
+    "Audience": "MixWarzApp",
+    "ExpiryInDays": 7
+  },
+  "AWS": {
+    "Region": "us-east-1",
+    "ServiceURL": "http://localhost:4566",
+    "S3": {
+      "BucketName": "mixwarz-submissions",
+      "UserProfilePicturesBucket": "mixwarz-user-profile-pictures",
+      "UserGalleryImagesBucket": "mixwarz-user-gallery-images",
+      "UserAudioFilesBucket": "mixwarz-user-audio-files"
+    }
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "CompetitionTiming": {
+    "DaysForRound1Voting": 7,
+    "DaysForRound2Voting": 5
+  },
+  "Stripe": {
+    "PublishableKey": "pk_test_YOUR_STRIPE_PUBLISHABLE_KEY",
+    "SecretKey": "sk_test_YOUR_STRIPE_SECRET_KEY",
+    "WebhookSecret": "whsec_YOUR_WEBHOOK_SECRET_FROM_STRIPE_DASHBOARD"
+  },
+  "QuartzScheduler": {
+    "EnableQuartzScheduler": true,
+    "CompetitionTransitions": {
+      "CheckFrequencyMinutes": 60,
+      "Round1VotingDurationDays": 7,
+      "Round2VotingDurationDays": 5,
+      "MonthlyCompetitions": true
+    }
+  },
+  "Storage": {
+    "LocalUploadsPath": "AppData/uploads",
+    "BaseUrl": "http://localhost:7001",
+    "AllowedImageTypes": ["image/jpeg", "image/png", "image/gif"],
+    "AllowedAudioTypes": [
+      "audio/mpeg",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/mp3",
+      "audio/aiff",
+      "audio/x-aiff"
+    ],
+    "MaxImageSizeMB": 2,
+    "MaxAudioSizeMB": 100
+  }
+}

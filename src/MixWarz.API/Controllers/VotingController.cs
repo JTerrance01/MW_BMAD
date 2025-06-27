@@ -23,6 +23,7 @@ namespace MixWarz.API.Controllers
         private readonly IRound1AssignmentRepository _round1AssignmentRepository;
         private readonly IFileStorageService _fileStorageService;
         private readonly IMediator _mediator;
+        private readonly ISubmissionVoteRepository _submissionVoteRepository;
 
         public VotingController(
             IRound1AssignmentService round1AssignmentService,
@@ -30,7 +31,8 @@ namespace MixWarz.API.Controllers
             ICompetitionRepository competitionRepository,
             IRound1AssignmentRepository round1AssignmentRepository,
             IFileStorageService fileStorageService,
-            IMediator mediator)
+            IMediator mediator,
+            ISubmissionVoteRepository submissionVoteRepository)
         {
             _round1AssignmentService = round1AssignmentService;
             _round2VotingService = round2VotingService;
@@ -38,6 +40,7 @@ namespace MixWarz.API.Controllers
             _round1AssignmentRepository = round1AssignmentRepository;
             _fileStorageService = fileStorageService;
             _mediator = mediator;
+            _submissionVoteRepository = submissionVoteRepository;
         }
 
         /// <summary>
@@ -279,23 +282,32 @@ namespace MixWarz.API.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                        ?? User.FindFirst("userId")?.Value
                        ?? User.FindFirst("sub")?.Value;
+
+            Console.WriteLine($"[GetRound2VotingSubmissions] Starting - CompetitionId: {competitionId}, UserId: '{userId}'");
+
             if (string.IsNullOrEmpty(userId))
             {
+                Console.WriteLine("[GetRound2VotingSubmissions] User not authenticated");
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
             try
             {
                 // Get the competition to check status and voting deadline
+                Console.WriteLine($"[GetRound2VotingSubmissions] Fetching competition {competitionId}");
                 var competition = await _competitionRepository.GetByIdAsync(competitionId);
                 if (competition == null)
                 {
+                    Console.WriteLine($"[GetRound2VotingSubmissions] Competition {competitionId} not found");
                     return NotFound(new { message = $"Competition with ID {competitionId} not found" });
                 }
+
+                Console.WriteLine($"[GetRound2VotingSubmissions] Competition found - Status: {competition.Status}");
 
                 // Check if competition is in correct status for Round 2 voting
                 if (competition.Status != CompetitionStatus.VotingRound2Open)
                 {
+                    Console.WriteLine($"[GetRound2VotingSubmissions] Competition not open for Round 2 voting. Status: {competition.Status}");
                     return BadRequest(new
                     {
                         message = $"Competition is not open for Round 2 voting. Current status: {competition.Status}"
@@ -303,18 +315,43 @@ namespace MixWarz.API.Controllers
                 }
 
                 // Check if user is eligible for Round 2 voting
+                Console.WriteLine($"[GetRound2VotingSubmissions] Checking user eligibility");
                 var isEligible = await _round2VotingService.IsUserEligibleForRound2VotingAsync(competitionId, userId);
-                if (!isEligible)
-                {
-                    return Forbid("User is not eligible for Round 2 voting");
-                }
+                Console.WriteLine($"[GetRound2VotingSubmissions] User eligibility: {isEligible}");
+
+                // Note: We don't block access here even if the user is not eligible
+                // They may have already voted or may not have submitted to the competition
+                // The frontend will handle the display based on isEligible flag
+
+                Console.WriteLine($"[GetRound2VotingSubmissions] Fetching Round 2 submissions");
 
                 // Get Round 2 submissions
                 var submissions = await _round2VotingService.GetRound2SubmissionsAsync(competitionId);
 
-                // For Round 2, we'd need to check if user has voted - this would require extending Round2VotingService
-                // For now, setting hasVoted to false - you may need to implement this check
-                var hasVoted = false; // TODO: Implement Round 2 voting status check
+                Console.WriteLine($"[GetRound2VotingSubmissions] Retrieved {submissions?.Count() ?? 0} submissions");
+
+                // Check if we got any submissions
+                if (submissions == null || !submissions.Any())
+                {
+                    Console.WriteLine("[GetRound2VotingSubmissions] No submissions found, returning empty response");
+                    // Return empty response if no submissions found
+                    var emptyResponse = new Round2VotingSubmissionsResponse
+                    {
+                        Submissions = new List<SubmissionForVotingDto>(),
+                        HasVoted = false,
+                        IsEligible = isEligible,
+                        VotingDeadline = competition.EndDate
+                    };
+                    return Ok(emptyResponse);
+                }
+
+                // For Round 2, check if user has voted
+                var hasVoted = false;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    hasVoted = await _submissionVoteRepository.HasVoterSubmittedAllVotesAsync(userId, competitionId, 2, 3);
+                    Console.WriteLine($"[GetRound2VotingSubmissions] User has voted: {hasVoted}");
+                }
 
                 // Calculate voting deadline
                 var votingDeadline = competition.EndDate;
@@ -324,24 +361,38 @@ namespace MixWarz.API.Controllers
 
                 foreach (var s in submissions)
                 {
-                    // Generate a pre-signed URL for accessing the audio file (valid for 1 hour)
-                    var audioUrl = await FileUrlHelper.ResolveFileUrlAsync(
-                        _fileStorageService,
-                        s.AudioFilePath ?? "",
-                        TimeSpan.FromHours(1));
-
-                    var dto = new SubmissionForVotingDto
+                    try
                     {
-                        Id = s.SubmissionId,
-                        Title = s.MixTitle ?? $"Submission {s.SubmissionId}",
-                        Description = s.MixDescription ?? "",
-                        AudioUrl = audioUrl, // Use the pre-signed URL
-                        Number = s.SubmissionId,
-                        SubmittedAt = s.SubmissionDate
-                    };
+                        Console.WriteLine($"[GetRound2VotingSubmissions] Processing submission {s.SubmissionId}");
 
-                    submissionDtos.Add(dto);
+                        // Generate a pre-signed URL for accessing the audio file (valid for 1 hour)
+                        var audioUrl = await FileUrlHelper.ResolveFileUrlAsync(
+                            _fileStorageService,
+                            s.AudioFilePath ?? "",
+                            TimeSpan.FromHours(1));
+
+                        var dto = new SubmissionForVotingDto
+                        {
+                            Id = s.SubmissionId,
+                            Title = s.MixTitle ?? $"Submission {s.SubmissionId}",
+                            Description = s.MixDescription ?? "",
+                            AudioUrl = audioUrl, // Use the pre-signed URL
+                            Number = s.SubmissionId,
+                            SubmittedAt = s.SubmissionDate
+                        };
+
+                        submissionDtos.Add(dto);
+                    }
+                    catch (Exception submissionEx)
+                    {
+                        // Log the error but continue processing other submissions
+                        // This prevents one bad submission from breaking the entire response
+                        Console.WriteLine($"[GetRound2VotingSubmissions] Error processing submission {s?.SubmissionId}: {submissionEx.Message}");
+                        Console.WriteLine($"[GetRound2VotingSubmissions] Stack trace: {submissionEx.StackTrace}");
+                    }
                 }
+
+                Console.WriteLine($"[GetRound2VotingSubmissions] Successfully processed {submissionDtos.Count} submissions");
 
                 var response = new Round2VotingSubmissionsResponse
                 {
@@ -351,10 +402,13 @@ namespace MixWarz.API.Controllers
                     VotingDeadline = votingDeadline
                 };
 
+                Console.WriteLine($"[GetRound2VotingSubmissions] SUCCESS - Returning {response.Submissions.Count} submissions");
                 return Ok(response);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[GetRound2VotingSubmissions] EXCEPTION: {ex.Message}");
+                Console.WriteLine($"[GetRound2VotingSubmissions] Stack trace: {ex.StackTrace}");
                 return BadRequest(new { message = $"Error retrieving Round 2 voting submissions: {ex.Message}" });
             }
         }
@@ -399,7 +453,7 @@ namespace MixWarz.API.Controllers
                 var isEligible = await _round2VotingService.IsUserEligibleForRound2VotingAsync(competitionId, userId);
                 if (!isEligible)
                 {
-                    return Forbid("User is not eligible for Round 2 voting");
+                    return StatusCode(403, new { message = "User is not eligible for Round 2 voting" });
                 }
 
                 // FIXED: Use ProcessRound2VotesAsync with proper 1st=3pts, 2nd=2pts, 3rd=1pt business logic

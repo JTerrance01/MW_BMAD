@@ -68,12 +68,18 @@ namespace MixWarz.Infrastructure.Services
             var competition = await _competitionRepository.GetByIdAsync(competitionId);
             if (competition == null)
             {
-                throw new Exception($"Competition with ID {competitionId} not found");
+                // Return empty list instead of throwing exception
+                // Let the controller handle the validation and error messages
+                _logger.LogWarning($"Competition with ID {competitionId} not found in GetRound2SubmissionsAsync");
+                return new List<Submission>();
             }
 
             if (competition.Status < CompetitionStatus.VotingRound2Setup)
             {
-                throw new Exception($"Competition has not advanced to Round 2 yet, current status: {competition.Status}");
+                // Return empty list instead of throwing exception
+                // The controller already checks the status and provides appropriate error messages
+                _logger.LogWarning($"Competition {competitionId} has not advanced to Round 2 yet, current status: {competition.Status}");
+                return new List<Submission>();
             }
 
             // Get all submissions that advanced to Round 2

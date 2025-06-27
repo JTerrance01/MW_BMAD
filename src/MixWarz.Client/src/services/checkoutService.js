@@ -15,9 +15,33 @@ export const createCheckoutSession = async (cartItems) => {
       throw new Error('Authentication required');
     }
 
+    // Get user ID from token (decode JWT to get user ID)
+    const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+    const userId = tokenPayload.nameid || tokenPayload.sub || tokenPayload.id;
+
+    // Format cart items to match backend DTOs with PascalCase properties
+    const formattedCartItems = cartItems.map(item => ({
+      ProductId: item.productId,
+      ProductName: item.productName,
+      ProductPrice: item.productPrice,
+      ProductImageUrl: item.productImageUrl || '',
+      Quantity: item.quantity,
+      TotalPrice: item.productPrice * item.quantity
+    }));
+
+    // Create the command object expected by the backend
+    const checkoutCommand = {
+      CartItems: formattedCartItems,
+      UserId: userId,
+      SuccessUrl: `${window.location.origin}/checkout/success`,
+      CancelUrl: `${window.location.origin}/checkout/cancel`
+    };
+
+    console.log('🛒 Sending checkout command:', checkoutCommand);
+
     const response = await axios.post(
       `${API_BASE_URL}/checkout/create-session`,
-      cartItems,
+      checkoutCommand,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -33,7 +57,7 @@ export const createCheckoutSession = async (cartItems) => {
     if (error.response?.status === 401) {
       throw new Error('Authentication required. Please log in.');
     } else if (error.response?.status === 400) {
-      throw new Error(error.response.data?.error || 'Invalid checkout request');
+      throw new Error(error.response.data?.error || error.response.data || 'Invalid checkout request');
     } else if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     } else {

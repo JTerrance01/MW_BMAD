@@ -62,6 +62,9 @@ namespace MixWarz.Domain.Entities
         // Comma-separated list of artists, writers, producers
         public string SongCreator { get; set; } = string.Empty;
 
+        // Number of submissions that advance from each group to Round 2 (default: 3)
+        public int Round1AdvancementCount { get; set; } = 3;
+
         // Navigation properties
         public virtual User Organizer { get; set; } = null!;
         public virtual ICollection<Submission> Submissions { get; set; } = [];

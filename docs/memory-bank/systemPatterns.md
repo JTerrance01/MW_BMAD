@@ -53,6 +53,37 @@ This architecture ensures separation of concerns and maintainability.
 - Clear separation of responsibilities between services
 - Services encapsulate complex domain operations and business rules
 
+### Transaction Pattern
+
+- **Database Transactions**: Used for critical operations requiring atomicity
+- **Pattern Implementation**:
+  - Cast `IAppDbContext` to concrete `AppDbContext` to access Database property
+  - Wrap operations in `using var transaction = await dbContext.Database.BeginTransactionAsync()`
+  - Commit on success: `await transaction.CommitAsync()`
+  - Rollback on failure: `await transaction.RollbackAsync()`
+- **Example**: Round 1 Vote Tallying uses transactions to ensure all-or-nothing updates
+
+### Unified Processing Pattern
+
+- **Combine Related Operations**: Merge closely related operations into single methods
+- **Reduce Database Calls**: Fetch data once and process in memory
+- **Example**: `ProcessScoresAndVotesAsync` combines score calculation and vote counting
+- **Benefits**:
+  - Improved performance with fewer database round trips
+  - Simplified logic flow
+  - Easier to maintain and debug
+  - Better consistency in data processing
+
+### Configurable Business Rules Pattern
+
+- **Entity-Level Configuration**: Store business rule parameters in entities
+- **Example**: `Competition.Round1AdvancementCount` instead of hardcoded values
+- **Benefits**:
+  - Flexible rules per entity instance
+  - No code changes for rule adjustments
+  - Backward compatibility with defaults
+  - Clear audit trail of rule values
+
 ### Data Seeding Pattern
 
 - Used `DataSeeder` class in Infrastructure layer for initial data population

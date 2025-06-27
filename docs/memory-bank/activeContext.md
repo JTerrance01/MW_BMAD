@@ -115,79 +115,76 @@ await AssignFinalRankingsToAllCompetitors(submissionData, competitionId);
 
 ---
 
-**ROUND1 VOTE TALLYING IMPROVEMENTS - COMPLETED** ✅
+**ROUND1 VOTE TALLYING SYSTEM REFACTORING - COMPLETED** ✅
 
-**User Request**: Fix Round1Voting tallying issue where many votes were not counted, causing NULL Round1Score values in the database and incorrect competition results.
+**User Request**: Implement comprehensive plan to fix and enhance Round 1 Vote Tallying with atomic transactions, simplified logic, and configurable advancement.
 
-**PROBLEM IDENTIFIED AND FIXED**:
+**IMPLEMENTATION COMPLETED**:
 
-### **The Issue** 🔍
+### **Task 1: Atomic Database Transactions** ✅
 
-- **Overly Restrictive Logic**: Previous tallying only counted judgments from "complete judges" who finished ALL assignments
-- **Data Loss**: If a judge didn't complete 100% of assignments, NONE of their judgments counted
-- **NULL Scores**: Many submissions had NULL Round1Score values, making fair competition impossible
-- **Unfair Results**: Valid judgments were discarded, leading to incorrect rankings and advancement decisions
+- **Added Transaction Wrapping**: Entire tallying operation now wrapped in database transaction
+- **Rollback on Failure**: Any error during tallying causes complete rollback
+- **Cast to Concrete Type**: Used `_context as AppDbContext` to access Database property
+- **Error Handling**: Comprehensive try/catch with proper logging
 
-### **The Solution** ✅
+### **Task 2: Refactored Tallying Logic** ✅
 
-**IMPROVED TALLYING SYSTEM**:
+**Created ProcessScoresAndVotesAsync**:
 
-1. **Inclusive Judgment Counting**:
+- **Unified Method**: Combines score calculation and vote counting in single method
+- **Single Query**: Fetches all judgments once, reducing database calls
+- **Simplified Flow**: Processes all submissions efficiently with clear logic
+- **Statistics Tracking**: Comprehensive logging of judgment distributions
 
-   - Now counts ALL valid completed judgments, regardless of judge completion status
-   - Only excludes judgments that are explicitly incomplete or invalid
-   - Uses average scoring to handle varying numbers of judgments fairly
+**Key Improvements**:
 
-2. **Enhanced Data Tracking**:
+- Removed separate `CalculateFairRound1ScoresAsync` method
+- Removed `CalculateVoteCountsForGroupImproved` method
+- Removed `CalculateVoteCountsForGroup` method
+- Consolidated logic into single, cleaner implementation
 
-   - Comprehensive logging of judgment counts per submission
-   - Distribution statistics showing how many judgments each submission received
-   - Warnings for submissions with very few judgments (< 3)
-   - Detailed validation phase to ensure data integrity
+### **Task 3: Simplified Main Orchestrator** ✅
 
-3. **Better Vote Counting**:
-
-   - CalculateVoteCountsForGroupImproved() uses all available judgment data
-   - Rankings based on actual scores, not just "complete judge" votes
-   - Multiple tie-breaking mechanisms for fair ordering
-
-4. **Validation Phase Added**:
-   - New Phase 4 validates all tallying results
-   - Checks for NULL scores in non-disqualified submissions
-   - Provides detailed statistics and error reporting
-   - Ensures data integrity before advancing to Round 2
-
-### **Key Code Changes**:
+**TallyVotesAndDetermineAdvancementAsync**:
 
 ```csharp
-// Before - Only complete judges counted
-var judgments = await _context.SubmissionJudgments
-    .Where(sj => ... && completeJudges.Contains(sj.JudgeId))
-    .ToListAsync();
-
-// After - ALL valid judgments count
-var judgments = await _context.SubmissionJudgments
-    .Where(sj => sj.SubmissionId == submission.SubmissionId &&
-               sj.CompetitionId == competitionId &&
-               sj.VotingRound == 1 &&
-               sj.IsCompleted == true &&
-               sj.OverallScore.HasValue)
-    .ToListAsync();
+// Clear 4-phase process
+Phase 1: Disqualify incomplete judges
+Phase 2: Calculate scores and votes (NEW unified method)
+Phase 3: Determine advancement
+Phase 4: Validate results
 ```
 
-### **SQL Script Provided**:
+### **Task 4: Configurable Advancement** ✅
 
-- Created `revert_competition_25_to_round1.sql` to reset Competition 25 for re-tallying
-- Only updates Submissions table as requested
-- Resets Round1Score, advancement flags, and related fields
+**Competition Entity Enhancement**:
+
+- Added `Round1AdvancementCount` property (default: 3)
+- Makes advancement count configurable per competition
+- No more hardcoded values in business logic
+
+**Enhanced Validation**:
+
+- Checks advancement counts per group
+- Validates expected vs actual advancement
+- Detailed logging of advancement distribution
+- Warnings for mismatches
+
+### **Migration Created**:
+
+- `AddRound1AdvancementCountToCompetition` migration
+- Adds new column to Competition table
+- Default value of 3 maintains backward compatibility
 
 ### **Benefits**:
 
-- ✅ No more NULL Round1Score values for non-disqualified submissions
-- ✅ All valid judgments are counted, maximizing available data
-- ✅ Fair competition with transparent scoring
-- ✅ Comprehensive logging for troubleshooting
-- ✅ Data validation ensures integrity
+- ✅ **Atomic Operations**: All-or-nothing tallying prevents partial updates
+- ✅ **Simplified Logic**: Single method for scores and votes reduces complexity
+- ✅ **Better Performance**: Fewer database queries with batch operations
+- ✅ **Configurable System**: Advancement count can vary per competition
+- ✅ **Enhanced Validation**: Better error detection and reporting
+- ✅ **Maintainable Code**: Clear separation of concerns with 4-phase process
 
 ---
 

@@ -306,15 +306,15 @@ const CartPage = () => {
                   disabled={checkoutLoading || items.length === 0}
                 >
                   {checkoutLoading ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Creating Checkout Session...
-                    </>
+                    [
+                      <Spinner key="spinner" animation="border" size="sm" className="me-2" />,
+                      "Creating Checkout Session..."
+                    ]
                   ) : (
-                    <>
-                      <BsCreditCard className="me-2" />
-                      Proceed to Stripe Checkout
-                    </>
+                    [
+                      <BsCreditCard key="icon" className="me-2" />,
+                      "Proceed to Stripe Checkout"
+                    ]
                   )}
                 </Button>
               </div>

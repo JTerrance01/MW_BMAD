@@ -236,10 +236,49 @@ const JudgingInterface = ({
   if (hasVoted) {
     return (
       <div className="mt-4">
-        <Alert variant="success">
-          <h5>Judging Complete</h5>
-          <p>You have already completed your judging for this competition. Thank you for your participation!</p>
-        </Alert>
+        <div 
+          className="p-4 rounded shadow-sm"
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            border: "2px solid var(--accent-secondary)",
+            borderLeft: "5px solid var(--accent-secondary)"
+          }}
+        >
+          <div className="d-flex align-items-center mb-3">
+            <div 
+              className="me-3 d-flex align-items-center justify-content-center"
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                backgroundColor: "var(--accent-secondary)",
+                color: "#000"
+              }}
+            >
+              ✓
+            </div>
+            <h5 
+              className="mb-0" 
+              style={{ 
+                color: "var(--accent-secondary)",
+                fontSize: "1.3rem",
+                fontWeight: "600"
+              }}
+            >
+              Judging Complete
+            </h5>
+          </div>
+          <p 
+            className="mb-0" 
+            style={{ 
+              color: "var(--text-primary)",
+              fontSize: "1rem",
+              lineHeight: "1.5"
+            }}
+          >
+            You have already completed your judging for this competition. Thank you for your participation!
+          </p>
+        </div>
       </div>
     );
   }

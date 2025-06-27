@@ -29,7 +29,7 @@ namespace MixWarz.Infrastructure.Persistence.Repositories
                 .Where(s => s.CompetitionId == competitionId)
                 .OrderByDescending(s => s.SubmissionDate)
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                //.Take(pageSize)
                 .ToListAsync();
         }
 

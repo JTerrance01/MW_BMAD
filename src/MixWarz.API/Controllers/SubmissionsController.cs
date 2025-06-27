@@ -52,7 +52,7 @@ namespace MixWarz.API.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(403, new { message = ex.Message });
             }
             catch (ApplicationException ex)
             {
@@ -211,7 +211,7 @@ namespace MixWarz.API.Controllers
             }
             else if (result.Message.Contains("not authorized"))
             {
-                return Forbid();
+                return StatusCode(403, new { message = result.Message });
             }
 
             return BadRequest(result);

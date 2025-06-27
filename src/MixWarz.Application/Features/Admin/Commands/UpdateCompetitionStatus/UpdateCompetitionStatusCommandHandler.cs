@@ -1,9 +1,7 @@
 using MediatR;
 using MixWarz.Domain.Interfaces;
 using MixWarz.Domain.Enums;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+
 
 namespace MixWarz.Application.Features.Admin.Commands.UpdateCompetitionStatus
 {

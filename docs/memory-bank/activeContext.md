@@ -2,6 +2,68 @@
 
 ## Current Focus
 
+**URL HANDLING IMPROVEMENTS - LATEST WORK** ✅
+
+**Issue**: Competition Detail page experiencing URL processing issues with double-encoded URLs and inconsistent URL handling across different endpoints.
+
+**Problem Identified**:
+
+- **Double-Encoded URLs**: URLs containing `https%3A//` patterns causing display issues
+- **Inconsistent Processing**: Different endpoints using different URL processing methods
+- **Complex URL Logic**: Mixed handling of file paths vs full URLs
+
+**Solution Implemented**:
+
+### **Enhanced GetCompetitionDetailQuery.cs** ✅
+
+**Key Changes**:
+
+1. **Added ProcessUrlAsync Method**: Intelligent URL processing for competition assets
+2. **Double-Encoding Fix**: Detects and fixes URLs with `https%3A//` patterns using regex
+3. **Dual URL Support**: Handles both file paths and full URLs seamlessly
+4. **Consistent Processing**: All competition URLs (cover image, multitrack, mixed track, source track) use same logic
+
+**Technical Implementation**:
+
+```csharp
+private async Task<string?> ProcessUrlAsync(string? urlOrPath)
+{
+    // Handle double-encoded URLs
+    if (urlOrPath.Contains("https%3A//") || urlOrPath.Contains("http%3A//"))
+    {
+        // Extract and decode the inner URL
+        var encodedUrlMatch = Regex.Match(pathAndQuery, @"(https?%3A//[^/\s]+(?:/[^\s]*)*)");
+        if (encodedUrlMatch.Success)
+        {
+            var decodedUrl = HttpUtility.UrlDecode(encodedUrlMatch.Value);
+            return decodedUrl;
+        }
+    }
+
+    // Handle file paths vs full URLs
+    if (Uri.TryCreate(urlOrPath, UriKind.Absolute, out _))
+    {
+        return urlOrPath; // Already a full URL
+    }
+    else
+    {
+        return await _fileStorageService.GetFileUrlAsync(urlOrPath, TimeSpan.FromDays(365));
+    }
+}
+```
+
+**Benefits**:
+
+- ✅ **Fixes Double-Encoding**: Automatically detects and fixes malformed URLs
+- ✅ **Backward Compatible**: Works with existing file paths and new full URLs
+- ✅ **Comprehensive Coverage**: Handles all competition asset types consistently
+- ✅ **Debug Logging**: Clear console output for troubleshooting URL issues
+- ✅ **Future-Proof**: Robust handling for various URL formats
+
+---
+
+**PREVIOUS MAJOR WORK COMPLETED** ✅
+
 **ROUND1 VOTINGROUND NULL ISSUE - FIXED** ✅
 
 **User Request**: Fix Round1Score NULL values after tallying. All 480 SubmissionJudgments exist with valid OverallScores, but submissions still get NULL Round1Score.
@@ -246,130 +308,36 @@ audioUrl = await FileUrlHelper.ResolveFileUrlAsync(
 
 ---
 
-## Previous Work
+## Current Development Status
 
-**FILE URL HELPER UTILITY - COMPLETED** ✅
+**Project State**: ✅ **STABLE & FUNCTIONAL**
 
-**User Request**: Fix audio URL issues with duplicate `/uploads/uploads/` paths by creating a common utility function similar to `EnsureAbsoluteUrl` for consistent URL processing across the application.
+**Key Achievements**:
 
-**PROBLEM IDENTIFIED AND FIXED**:
+- Complete authentication and authorization system
+- Functional competition management with judging/voting
+- E-commerce integration with Stripe payments
+- Comprehensive admin interface
+- Working audio playback across all components
+- Robust URL handling system
 
-### **The Issue** 🔍
+**Current Focus Areas**:
 
-- **Duplicate Paths**: Audio URLs had malformed paths like `https://localhost:7001/uploads/uploads/submissions/...`
-- **Inconsistent URL Handling**: Different parts of the application handled URL construction differently
-- **Frontend Workarounds**: Previous attempts to fix URLs on the frontend were reactive rather than preventive
-- **Missing Central Utility**: No common function for URL processing leading to repeated code and inconsistent behavior
+1. **URL Processing Improvements**: Ongoing refinement of URL handling across all endpoints
+2. **User Experience Polish**: Continued improvement of UI/UX consistency
+3. **Performance Optimization**: Monitoring and improving application performance
+4. **Code Quality**: Ongoing reduction of technical debt and warnings
 
-### **The Solution** ✅
+**Next Priority Items**:
 
-**CREATED FILEURL HELPER UTILITY CLASS**:
+1. **Testing & Validation**: Comprehensive testing of recent URL fixes
+2. **Documentation**: Update API documentation with recent changes
+3. **Performance Monitoring**: Review application performance metrics
+4. **Feature Enhancements**: Potential new features based on user feedback
 
-**Location**: `src/MixWarz.Application/Common/Utilities/FileUrlHelper.cs`
+**Recent Changes Summary**:
 
-#### **Key Methods** 🛠️:
-
-1. **`ResolveFileUrlAsync()`** - Intelligently resolves file paths/URLs for React proxy compatibility
-2. **`ProcessFileUrl()`** - Combines cleaning and absolute URL generation
-3. **`EnsureAbsoluteUrl()`** - Converts relative URLs to absolute format
-4. **`CleanDuplicatePaths()`** - Removes duplicate path segments like `/uploads/uploads/`
-5. **`EnsureProperFileKey()`** - Ensures file keys don't have duplicate prefixes
-6. **`EncodeFilePath()`** - URL encodes filenames while preserving directory structure
-
-#### **Updated Services** ✅:
-
-1. **MockFileStorageService**:
-
-   - Now uses `FileUrlHelper` methods
-   - Prevents duplicate path generation
-   - Consistent URL formatting
-
-2. **GetCompetitionResultsQueryHandler**:
-
-   - Uses `FileUrlHelper.ResolveFileUrlAsync()`
-   - Ensures proper URL format for audio files
-
-3. **Frontend Components**:
-   - Created `EnhancedAudioPlayer` with better error handling
-   - Updated `CompetitionResultsPage` to use processed URLs
-
-### **Benefits**:
-
-- ✅ No more duplicate `/uploads/uploads/` paths
-- ✅ Consistent URL handling across the application
-- ✅ Centralized URL processing logic
-- ✅ Better error handling and debugging
-- ✅ React proxy compatibility maintained
-
----
-
-**USER PURCHASES API ENDPOINT AND TAB NAVIGATION - COMPLETED** ✅
-
-**User Request**: Create a user purchases history endpoint and add a "My Purchases" tab to the user profile page to display purchase history.
-
-**IMPLEMENTATION COMPLETED**:
-
-### **Backend API Endpoint** ✅
-
-**Endpoint**: `GET /api/users/purchases/my-purchases`
-
-- **Controller**: `UserPurchasesController`
-- **Query Handler**: `GetUserPurchasesQueryHandler`
-- **Features**:
-  - Paginated results (10 per page)
-  - Returns purchase history with product details
-  - Includes download URLs for purchased products
-  - Secure authentication required
-
-### **Frontend Implementation** ✅
-
-1. **Profile Page Tab Navigation**:
-
-   - Added "My Purchases" tab to user profile
-   - Tab shows purchase count badge
-   - Smooth tab switching with active state
-
-2. **UserPurchasesList Component**:
-
-   - Displays purchase history in a clean card layout
-   - Shows product name, purchase date, and price
-   - Direct download buttons for each purchase
-   - Pagination support
-   - Empty state messaging
-
-3. **Redux Integration**:
-   - Added purchases slice to store
-   - Actions: `fetchUserPurchases`
-   - Manages loading, error, and data states
-
-### **Features Implemented**:
-
-- ✅ Purchase history with product details
-- ✅ Direct download functionality
-- ✅ Responsive design matching existing UI
-- ✅ Loading and error states
-- ✅ Pagination for large purchase lists
-- ✅ Secure authentication checks
-
----
-
-## Recent Fixes
-
-**BUILD WARNINGS REDUCTION** ⚠️
-
-- Reduced build warnings from 831 to 741 (90 warnings fixed)
-- Fixed CS8618 warnings by initializing non-nullable properties
-- Fixed CS8625 warnings by making parameters nullable where appropriate
-- Updated Domain entities with proper initializers
-
-**ROUND 1 ASSIGNMENT SERVICE UPDATE** ✅
-
-- Modified `ProcessVoteCountsAndAdvancementAsync` to allow top 3 competitors from each group to advance
-- Previously only 1st place advanced, now 1st, 2nd, and 3rd place advance to Round 2
-
-**ENHANCED AUDIO PLAYER** 🎵
-
-- Created `EnhancedAudioPlayer` component with better error handling
-- Fixed double URL encoding issues
-- Added fallback URL support
-- Improved error messages and debugging
+- ✅ Fixed double-encoded URL issues in Competition Detail
+- ✅ Enhanced URL processing for all competition assets
+- ✅ Improved debugging and error handling
+- ✅ Maintained backward compatibility with existing data

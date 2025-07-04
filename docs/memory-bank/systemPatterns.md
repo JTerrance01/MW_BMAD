@@ -513,3 +513,59 @@ This architecture ensures separation of concerns and maintainability.
 - File uploads are validated for type, size, and security before storage
 - Consistent naming conventions ensure file organization and prevent collisions
 - File storage is abstracted through the IFileStorageService interface
+
+### URL Processing Patterns (Latest Implementation)
+
+**Intelligent URL Processing System**:
+
+- **Unified URL Handling**: All competition assets (cover images, multitrack files, mixed tracks, source tracks) use consistent URL processing
+- **Double-Encoding Detection**: Automatic detection and repair of URLs containing `https%3A//` patterns
+- **Dual Format Support**: Seamless handling of both file paths and full URLs
+- **Backward Compatibility**: Works with existing file path data and new full URL formats
+
+**ProcessUrlAsync Pattern**:
+
+```csharp
+private async Task<string?> ProcessUrlAsync(string? urlOrPath)
+{
+    if (string.IsNullOrEmpty(urlOrPath))
+        return urlOrPath;
+
+    // Handle double-encoded URLs
+    if (urlOrPath.Contains("https%3A//") || urlOrPath.Contains("http%3A//"))
+    {
+        // Extract and decode the inner URL using regex
+        var encodedUrlMatch = Regex.Match(pathAndQuery, @"(https?%3A//[^/\s]+(?:/[^\s]*)*)");
+        if (encodedUrlMatch.Success)
+        {
+            var decodedUrl = HttpUtility.UrlDecode(encodedUrlMatch.Value);
+            return decodedUrl;
+        }
+    }
+
+    // Differentiate between file paths and full URLs
+    if (Uri.TryCreate(urlOrPath, UriKind.Absolute, out _))
+    {
+        return urlOrPath; // Already a full URL
+    }
+    else
+    {
+        // File path - generate presigned URL
+        return await _fileStorageService.GetFileUrlAsync(urlOrPath, TimeSpan.FromDays(365));
+    }
+}
+```
+
+**Key Benefits**:
+
+- **Automatic URL Repair**: Detects and fixes malformed URLs without manual intervention
+- **Centralized Logic**: Single method handles all URL processing for competition assets
+- **Debug Logging**: Clear console output for troubleshooting URL issues
+- **Future-Proof**: Robust handling for various URL formats and edge cases
+- **Performance Optimized**: Efficient processing with minimal overhead
+
+**Implementation Locations**:
+
+- **GetCompetitionDetailQuery.cs**: Primary implementation for competition asset URL processing
+- **FileUrlHelper.cs**: Utility class for centralized URL processing functions
+- **Query Handlers**: Consistent URL processing across all competition-related queries

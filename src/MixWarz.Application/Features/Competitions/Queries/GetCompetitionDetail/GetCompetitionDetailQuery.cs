@@ -17,7 +17,7 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionDetail
         public string? OrganizerUserId { get; set; }
         public string? OrganizerUsername { get; set; }
         public DateTime CreationDate { get; set; }
-        public int SubmissionsCount { get; set; }
+        public int SubmissionCount { get; set; }
         public string? CoverImageUrl { get; set; }
         public string? MultitrackZipUrl { get; set; }
         public bool HasMultitrackFile => !string.IsNullOrEmpty(MultitrackZipUrl);
@@ -38,11 +38,16 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionDetail
     public class GetCompetitionDetailQueryHandler : IRequestHandler<GetCompetitionDetailQuery, CompetitionDetailDto>
     {
         private readonly ICompetitionRepository _competitionRepository;
+        private readonly ISubmissionRepository _submissionRepository;
         private readonly IFileStorageService _fileStorageService;
 
-        public GetCompetitionDetailQueryHandler(ICompetitionRepository competitionRepository, IFileStorageService fileStorageService)
+        public GetCompetitionDetailQueryHandler(
+            ICompetitionRepository competitionRepository,
+            ISubmissionRepository submissionRepository,
+            IFileStorageService fileStorageService)
         {
             _competitionRepository = competitionRepository;
+            _submissionRepository = submissionRepository;
             _fileStorageService = fileStorageService;
         }
 
@@ -54,6 +59,9 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionDetail
             {
                 throw new Exception($"Competition with ID {request.CompetitionId} not found");
             }
+
+            // Get accurate submission count from the database
+            var submissionCount = await _submissionRepository.GetCountByCompetitionIdAsync(request.CompetitionId);
 
             // Process URLs to handle both file keys and full URLs
             var coverImageUrl = await ProcessUrlAsync(competition.CoverImageUrl);
@@ -74,7 +82,7 @@ namespace MixWarz.Application.Features.Competitions.Queries.GetCompetitionDetail
                 OrganizerUserId = competition.OrganizerUserId,
                 OrganizerUsername = competition.Organizer?.UserName,
                 CreationDate = competition.CreationDate,
-                SubmissionsCount = competition.Submissions?.Count ?? 0,
+                SubmissionCount = submissionCount,
                 CoverImageUrl = coverImageUrl,
                 MultitrackZipUrl = multitrackZipUrl,
                 MixedTrackUrl = mixedTrackUrl,

@@ -159,7 +159,7 @@ const VotingRound2Card = ({
       </Card.Header>
 
       <Card.Body>
-        {!isEligibleVoter ? (
+        {!isEligibleVoter && !hasVoted && !success ? (
           <Alert variant="warning" className="mb-0 bg-warning bg-opacity-25 border-warning text-light">
             <Alert.Heading style={{ color: 'var(--accent-primary)' }}>Not Eligible to Vote</Alert.Heading>
             <p style={{ color: 'var(--text-primary)' }}>
@@ -207,7 +207,7 @@ const VotingRound2Card = ({
               announced once the competition voting period has ended.
             </p>
           </Alert>
-        ) : (
+        ) : (isEligibleVoter || hasVoted) && advancedSubmissions.length > 0 ? (
           <>
             <div className="mb-4">
               <h5 style={{ color: 'var(--accent-primary)' }}>Final Round Voting</h5>
@@ -387,7 +387,7 @@ const VotingRound2Card = ({
               </Button>
             </div>
           </>
-        )}
+        ) : null}
       </Card.Body>
     </Card>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, Fragment } from "react";
+import React, { useEffect, Fragment, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { refreshToken, fetchUserProfile } from "./store/authSlice";
@@ -7,37 +7,50 @@ import AppConfig from "./utils/AppConfig";
 import { getRolesFromToken, hasAdminRole } from "./utils/authUtils";
 import ScrollToTop from "./components/common/ScrollToTop";
 
-// Layouts
+// Layouts - Load immediately (critical for routing)
 import MainLayout from "./components/layouts/MainLayout";
-import AdminLayout from "./components/layouts/AdminLayout";
 
-// Public Pages
+// Critical pages - Load immediately
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
-import ProductsPage from "./pages/products/ProductsPage";
-import ProductDetailPage from "./pages/products/ProductDetailPage";
-import CartPage from "./pages/cart/CartPage";
-import CheckoutPage from "./pages/checkout/CheckoutPage";
-import CheckoutSuccessPage from "./pages/checkout/CheckoutSuccessPage";
-import CheckoutCancelPage from "./pages/checkout/CheckoutCancelPage";
-import OrderConfirmationPage from "./pages/checkout/OrderConfirmationPage";
-import CompetitionsPage from "./pages/competitions/CompetitionsPage";
-import CompetitionDetailPage from "./pages/competitions/CompetitionDetailPage";
-import CompetitionResultsPage from "./pages/competitions/CompetitionResultsPage";
-import BlogListPage from "./pages/blog/BlogListPage";
-import BlogArticlePage from "./pages/blog/BlogArticlePage";
-import UserProfilePage from "./pages/profile/UserProfilePage";
-import ProfileSettingsPage from "./pages/profile/ProfileSettingsPage";
-import PricingPage from "./pages/PricingPage";
 
-// Admin Pages
-import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
-import AdminProductsPage from "./pages/admin/AdminProductsPage";
-import AdminCompetitionsPage from "./pages/admin/AdminCompetitionsPage";
-import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
-import AdminBlogPage from "./pages/admin/AdminBlogPage";
+// Lazy load heavy components that are not immediately needed
+const AdminLayout = React.lazy(() => import("./components/layouts/AdminLayout"));
+
+// Public Pages - Lazy loaded
+const ProductsPage = React.lazy(() => import("./pages/products/ProductsPage"));
+const ProductDetailPage = React.lazy(() => import("./pages/products/ProductDetailPage"));
+const CartPage = React.lazy(() => import("./pages/cart/CartPage"));
+const CheckoutPage = React.lazy(() => import("./pages/checkout/CheckoutPage"));
+const CheckoutSuccessPage = React.lazy(() => import("./pages/checkout/CheckoutSuccessPage"));
+const CheckoutCancelPage = React.lazy(() => import("./pages/checkout/CheckoutCancelPage"));
+const OrderConfirmationPage = React.lazy(() => import("./pages/checkout/OrderConfirmationPage"));
+const CompetitionsPage = React.lazy(() => import("./pages/competitions/CompetitionsPage"));
+const CompetitionDetailPage = React.lazy(() => import("./pages/competitions/CompetitionDetailPage"));
+const CompetitionResultsPage = React.lazy(() => import("./pages/competitions/CompetitionResultsPage"));
+const BlogListPage = React.lazy(() => import("./pages/blog/BlogListPage"));
+const BlogArticlePage = React.lazy(() => import("./pages/blog/BlogArticlePage"));
+const UserProfilePage = React.lazy(() => import("./pages/profile/UserProfilePage"));
+const ProfileSettingsPage = React.lazy(() => import("./pages/profile/ProfileSettingsPage"));
+const PricingPage = React.lazy(() => import("./pages/PricingPage"));
+
+// Admin Pages - Lazy loaded (heavy components)
+const AdminDashboardPage = React.lazy(() => import("./pages/admin/AdminDashboardPage"));
+const AdminUsersPage = React.lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminProductsPage = React.lazy(() => import("./pages/admin/AdminProductsPage"));
+const AdminCompetitionsPage = React.lazy(() => import("./pages/admin/AdminCompetitionsPage"));
+const AdminOrdersPage = React.lazy(() => import("./pages/admin/AdminOrdersPage"));
+const AdminBlogPage = React.lazy(() => import("./pages/admin/AdminBlogPage"));
+
+// Loading component for better UX
+const LoadingSpinner = () => (
+  <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "200px" }}>
+    <div className="spinner-border" role="status">
+      <span className="visually-hidden">Loading...</span>
+    </div>
+  </div>
+);
 
 // Private route wrapper
 const PrivateRoute = ({ element, requiredRoles = [] }) => {
@@ -121,70 +134,72 @@ function App() {
       {/* Scroll to top on route changes */}
       <ScrollToTop />
 
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="pricing" element={<PricingPage />} />
-          <Route path="products" element={<ProductsPage />} />
-          <Route path="products/:id" element={<ProductDetailPage />} />
-          <Route path="cart" element={<CartPage />} />
-          <Route
-            path="checkout"
-            element={<PrivateRoute element={<CheckoutPage />} />}
-          />
-          <Route
-            path="checkout/success"
-            element={<PrivateRoute element={<CheckoutSuccessPage />} />}
-          />
-          <Route
-            path="checkout/cancel"
-            element={<PrivateRoute element={<CheckoutCancelPage />} />}
-          />
-          <Route
-            path="order-confirmation/:id"
-            element={<PrivateRoute element={<OrderConfirmationPage />} />}
-          />
-          <Route path="competitions" element={<CompetitionsPage />} />
-          <Route path="competitions/:id" element={<CompetitionDetailPage />} />
-          <Route path="competitions/:id/results" element={<CompetitionResultsPage />} />
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="pricing" element={<PricingPage />} />
+            <Route path="products" element={<ProductsPage />} />
+            <Route path="products/:id" element={<ProductDetailPage />} />
+            <Route path="cart" element={<CartPage />} />
+            <Route
+              path="checkout"
+              element={<PrivateRoute element={<CheckoutPage />} />}
+            />
+            <Route
+              path="checkout/success"
+              element={<PrivateRoute element={<CheckoutSuccessPage />} />}
+            />
+            <Route
+              path="checkout/cancel"
+              element={<PrivateRoute element={<CheckoutCancelPage />} />}
+            />
+            <Route
+              path="order-confirmation/:id"
+              element={<PrivateRoute element={<OrderConfirmationPage />} />}
+            />
+            <Route path="competitions" element={<CompetitionsPage />} />
+            <Route path="competitions/:id" element={<CompetitionDetailPage />} />
+            <Route path="competitions/:id/results" element={<CompetitionResultsPage />} />
 
-          {/* Blog Routes */}
-          <Route path="blog" element={<BlogListPage />} />
-          <Route path="blog/:slug" element={<BlogArticlePage />} />
+            {/* Blog Routes */}
+            <Route path="blog" element={<BlogListPage />} />
+            <Route path="blog/:slug" element={<BlogArticlePage />} />
 
-          {/* Profile Routes */}
+            {/* Profile Routes */}
+            <Route
+              path="profile"
+              element={<PrivateRoute element={<UserProfilePage />} />}
+            />
+            <Route
+              path="profile/settings"
+              element={<PrivateRoute element={<ProfileSettingsPage />} />}
+            />
+            <Route path="profile/:username" element={<UserProfilePage />} />
+          </Route>
+
+          {/* Admin Routes */}
           <Route
-            path="profile"
-            element={<PrivateRoute element={<UserProfilePage />} />}
-          />
-          <Route
-            path="profile/settings"
-            element={<PrivateRoute element={<ProfileSettingsPage />} />}
-          />
-          <Route path="profile/:username" element={<UserProfilePage />} />
-        </Route>
+            path="/admin"
+            element={
+              <PrivateRoute element={<AdminLayout />} requiredRoles={["Admin"]} />
+            }
+          >
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="products" element={<AdminProductsPage />} />
+            <Route path="competitions" element={<AdminCompetitionsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="blog" element={<AdminBlogPage />} />
+          </Route>
 
-        {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            <PrivateRoute element={<AdminLayout />} requiredRoles={["Admin"]} />
-          }
-        >
-          <Route index element={<AdminDashboardPage />} />
-          <Route path="users" element={<AdminUsersPage />} />
-          <Route path="products" element={<AdminProductsPage />} />
-          <Route path="competitions" element={<AdminCompetitionsPage />} />
-          <Route path="orders" element={<AdminOrdersPage />} />
-          <Route path="blog" element={<AdminBlogPage />} />
-        </Route>
-
-        {/* Catch All Route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Catch All Route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Fragment>
   );
 }

@@ -18,7 +18,8 @@ using MixWarz.Application.Common.Interfaces;
 using MixWarz.Infrastructure.Extensions;
 using MixWarz.Infrastructure.Jobs;
 using MixWarz.Application.Common.Options;
-
+using Microsoft.AspNetCore.ResponseCompression;
+using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,9 +48,45 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 // Configure Competition Timing Options
 builder.Services.Configure<CompetitionTimingOptions>(builder.Configuration.GetSection("CompetitionTiming"));
 
+// Add Response Caching
+builder.Services.AddResponseCaching();
+
+// Add Memory Caching
+builder.Services.AddMemoryCache();
+
+// Add Response Compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/json", "text/json", "application/javascript", "text/css", "text/html" });
+});
+
+// Configure compression options
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.SmallestSize;
+});
+
 // Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    
+    // Enable query logging only in development
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
 
 // Register IAppDbContext
 builder.Services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
@@ -232,6 +269,31 @@ builder.Services.AddControllers(options =>
 {
     // Increase the request size limit for file uploads
     options.MaxModelBindingCollectionSize = int.MaxValue;
+    
+    // Add response caching profile
+    options.CacheProfiles.Add("Default",
+        new Microsoft.AspNetCore.Mvc.CacheProfile
+        {
+            Duration = 300, // 5 minutes
+            Location = Microsoft.AspNetCore.Mvc.ResponseCacheLocation.Any,
+            VaryByHeader = "Accept-Encoding"
+        });
+        
+    options.CacheProfiles.Add("Short",
+        new Microsoft.AspNetCore.Mvc.CacheProfile
+        {
+            Duration = 60, // 1 minute
+            Location = Microsoft.AspNetCore.Mvc.ResponseCacheLocation.Any,
+            VaryByHeader = "Accept-Encoding"
+        });
+        
+    options.CacheProfiles.Add("Long",
+        new Microsoft.AspNetCore.Mvc.CacheProfile
+        {
+            Duration = 3600, // 1 hour
+            Location = Microsoft.AspNetCore.Mvc.ResponseCacheLocation.Any,
+            VaryByHeader = "Accept-Encoding"
+        });
 })
 .AddJsonOptions(options =>
 {
@@ -293,20 +355,42 @@ else
     app.UseHsts();
 }
 
+// Important: Add response compression before other middleware
+app.UseResponseCompression();
+
+// Add response caching middleware
+app.UseResponseCaching();
+
 // Important: UseCors must come before UseAuthentication/Authorization
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // Configure static file serving
-app.UseStaticFiles(); // Default static files from wwwroot
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Add cache headers for static files
+        const int durationInSeconds = 60 * 60 * 24 * 30; // 30 days
+        ctx.Context.Response.Headers.Add("Cache-Control", $"public,max-age={durationInSeconds}");
+        ctx.Context.Response.Headers.Add("Expires", DateTime.UtcNow.AddDays(30).ToString("R"));
+    }
+});
 
 // Configure additional static file serving for uploads - this serves files from AppData/uploads at /uploads path
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
         Path.Combine(Directory.GetCurrentDirectory(), "AppData", "uploads")),
-    RequestPath = "/uploads"
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        // Add cache headers for uploaded files (shorter cache time)
+        const int durationInSeconds = 60 * 60 * 24; // 1 day
+        ctx.Context.Response.Headers.Add("Cache-Control", $"public,max-age={durationInSeconds}");
+        ctx.Context.Response.Headers.Add("Expires", DateTime.UtcNow.AddDays(1).ToString("R"));
+    }
 });
 
 app.MapControllers();

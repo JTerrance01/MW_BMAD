@@ -27,6 +27,9 @@
     "start": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
     "dev": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
     "build": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
+    "build:analyze": "set NODE_OPTIONS=--openssl-legacy-provider && npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "build:production": "set NODE_OPTIONS=--openssl-legacy-provider && GENERATE_SOURCEMAP=false react-scripts build",
+    "analyze": "npx webpack-bundle-analyzer build/static/js/*.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -50,6 +53,7 @@
   },
   "proxy": "https://localhost:7001",
   "devDependencies": {
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "webpack-bundle-analyzer": "^4.10.1"
   }
 }

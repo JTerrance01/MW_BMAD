@@ -24,6 +24,7 @@ namespace MixWarz.API.Controllers
         private readonly IFileStorageService _fileStorageService;
         private readonly IMediator _mediator;
         private readonly ISubmissionVoteRepository _submissionVoteRepository;
+        private readonly ILogger<VotingController> _logger;
 
         public VotingController(
             IRound1AssignmentService round1AssignmentService,
@@ -32,7 +33,8 @@ namespace MixWarz.API.Controllers
             IRound1AssignmentRepository round1AssignmentRepository,
             IFileStorageService fileStorageService,
             IMediator mediator,
-            ISubmissionVoteRepository submissionVoteRepository)
+            ISubmissionVoteRepository submissionVoteRepository,
+            ILogger<VotingController> logger)
         {
             _round1AssignmentService = round1AssignmentService;
             _round2VotingService = round2VotingService;
@@ -41,6 +43,7 @@ namespace MixWarz.API.Controllers
             _fileStorageService = fileStorageService;
             _mediator = mediator;
             _submissionVoteRepository = submissionVoteRepository;
+            _logger = logger;
         }
 
         /// <summary>
@@ -55,19 +58,16 @@ namespace MixWarz.API.Controllers
             var userIdClaimAlt1 = User.FindFirst("userId")?.Value;
             var userIdClaimAlt2 = User.FindFirst("sub")?.Value;
 
-            Console.WriteLine($"[GetRound1VotingAssignments] User ID Claims Debug:");
-            Console.WriteLine($"   ClaimTypes.NameIdentifier: '{userIdClaim ?? "NULL"}'");
-            Console.WriteLine($"   userId claim: '{userIdClaimAlt1 ?? "NULL"}'");
-            Console.WriteLine($"   sub claim: '{userIdClaimAlt2 ?? "NULL"}'");
-            Console.WriteLine($"   All claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}='{c.Value}'"))}");
+            _logger.LogDebug("User ID Claims Debug: NameIdentifier={UserIdClaim}, userId={UserIdClaimAlt1}, sub={UserIdClaimAlt2}",
+                userIdClaim, userIdClaimAlt1, userIdClaimAlt2);
 
             var userId = userIdClaim ?? userIdClaimAlt1 ?? userIdClaimAlt2;
 
-            Console.WriteLine($"[GetRound1VotingAssignments] CompetitionId: {competitionId}, Selected UserId: '{userId ?? "NULL"}'");
+            _logger.LogDebug("GetRound1VotingAssignments - CompetitionId: {CompetitionId}, UserId: {UserId}", competitionId, userId);
 
             if (string.IsNullOrEmpty(userId))
             {
-                Console.WriteLine("[GetRound1VotingAssignments] UserId is null or empty - authentication failed");
+                _logger.LogWarning("GetRound1VotingAssignments - UserId is null or empty - authentication failed");
                 return Unauthorized(new { message = "User not authenticated or user ID not found in token" });
             }
 
@@ -78,17 +78,17 @@ namespace MixWarz.API.Controllers
                 if (Guid.TryParse(userId, out var guidResult))
                 {
                     normalizedUserId = guidResult.ToString().ToLowerInvariant();
-                    Console.WriteLine($"[GetRound1VotingAssignments] Normalized GUID: '{normalizedUserId}'");
+                    _logger.LogDebug("Normalized GUID: {NormalizedUserId}", normalizedUserId);
                 }
                 else
                 {
                     normalizedUserId = userId.ToLowerInvariant();
-                    Console.WriteLine($"[GetRound1VotingAssignments] Non-GUID UserId normalized: '{normalizedUserId}'");
+                    _logger.LogDebug("Non-GUID UserId normalized: {NormalizedUserId}", normalizedUserId);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetRound1VotingAssignments] Error normalizing UserId: {ex.Message}");
+                _logger.LogError(ex, "Error normalizing UserId: {UserId}", userId);
                 normalizedUserId = userId;
             }
 
@@ -98,16 +98,17 @@ namespace MixWarz.API.Controllers
                 var competition = await _competitionRepository.GetByIdAsync(competitionId);
                 if (competition == null)
                 {
-                    Console.WriteLine($"[GetRound1VotingAssignments] Competition {competitionId} not found");
+                    _logger.LogWarning("Competition {CompetitionId} not found", competitionId);
                     return NotFound(new { message = $"Competition with ID {competitionId} not found" });
                 }
 
-                Console.WriteLine($"[GetRound1VotingAssignments] Competition found: Status={competition.Status}, Title='{competition.Title}'");
+                _logger.LogDebug("Competition found: Status={Status}, Title={Title}", competition.Status, competition.Title);
 
                 // Check if competition is in correct status for Round 1 voting
                 if (competition.Status != CompetitionStatus.VotingRound1Open)
                 {
-                    Console.WriteLine($"[GetRound1VotingAssignments] Competition status invalid: {competition.Status} (expected: {CompetitionStatus.VotingRound1Open})");
+                    _logger.LogWarning("Competition status invalid: {Status} (expected: {ExpectedStatus})", 
+                        competition.Status, CompetitionStatus.VotingRound1Open);
                     return BadRequest(new
                     {
                         message = $"Competition is not open for Round 1 voting. Current status: {competition.Status}"
@@ -115,27 +116,18 @@ namespace MixWarz.API.Controllers
                 }
 
                 // Try to get assignment with both original and normalized user IDs
-                Console.WriteLine($"[GetRound1VotingAssignments] Searching for assignment with original UserId: '{userId}'");
+                _logger.LogDebug("Searching for assignment with original UserId: {UserId}", userId);
                 var assignment = await _round1AssignmentRepository.GetByCompetitionAndVoterAsync(competitionId, userId);
 
                 if (assignment == null && normalizedUserId != userId)
                 {
-                    Console.WriteLine($"[GetRound1VotingAssignments] Original UserId failed, trying normalized: '{normalizedUserId}'");
+                    _logger.LogDebug("Original UserId failed, trying normalized: {NormalizedUserId}", normalizedUserId);
                     assignment = await _round1AssignmentRepository.GetByCompetitionAndVoterAsync(competitionId, normalizedUserId);
                 }
 
                 if (assignment == null)
                 {
-                    Console.WriteLine($"[GetRound1VotingAssignments] No assignment found for user '{userId}' (normalized: '{normalizedUserId}') in competition {competitionId}");
-
-                    // Debug: Check what assignments DO exist for this competition
-                    var allAssignments = await _round1AssignmentRepository.GetByCompetitionIdAsync(competitionId);
-                    Console.WriteLine($"[GetRound1VotingAssignments] DEBUG: Found {allAssignments.Count()} total assignments for competition {competitionId}:");
-                    foreach (var a in allAssignments.Take(5)) // Show first 5
-                    {
-                        Console.WriteLine($"   VoterId: '{a.VoterId}', AssignedGroup: {a.AssignedGroupNumber}");
-                    }
-
+                    _logger.LogWarning("No assignment found for user {UserId} in competition {CompetitionId}", userId, competitionId);
                     return Ok(new Round1VotingAssignmentsResponse
                     {
                         Submissions = new List<SubmissionForVotingDto>(),
@@ -144,28 +136,22 @@ namespace MixWarz.API.Controllers
                     });
                 }
 
-                Console.WriteLine($"[GetRound1VotingAssignments] Assignment found: AssignedGroup={assignment.AssignedGroupNumber}, HasVoted={assignment.HasVoted}");
+                _logger.LogDebug("Assignment found: AssignedGroup={AssignedGroup}, HasVoted={HasVoted}", 
+                    assignment.AssignedGroupNumber, assignment.HasVoted);
 
                 // Get assigned submissions for the voter
-                Console.WriteLine($"[GetRound1VotingAssignments] Calling GetAssignedSubmissionsForVoterAsync with userId: '{userId}'");
                 var submissions = await _round1AssignmentService.GetAssignedSubmissionsForVoterAsync(competitionId, userId);
 
                 if (submissions == null)
                 {
-                    Console.WriteLine($"[GetRound1VotingAssignments] GetAssignedSubmissionsForVoterAsync returned null");
+                    _logger.LogWarning("GetAssignedSubmissionsForVoterAsync returned null for user {UserId}", userId);
                     submissions = Enumerable.Empty<Submission>();
                 }
 
                 var submissionsList = submissions.ToList();
-                Console.WriteLine($"[GetRound1VotingAssignments] Retrieved {submissionsList.Count} submissions from service");
+                _logger.LogDebug("Retrieved {Count} submissions from service", submissionsList.Count);
 
-                // Log details about each submission
-                foreach (var sub in submissionsList)
-                {
-                    Console.WriteLine($"[GetRound1VotingAssignments] Submission: ID={sub.SubmissionId}, Title='{sub.MixTitle}', AudioPath='{sub.AudioFilePath}', UserId='{sub.UserId}'");
-                }
-
-                // Calculate voting deadline (you may need to adjust this based on your Competition entity structure)
+                // Calculate voting deadline
                 var votingDeadline = competition.EndDate;
 
                 // Map submissions to DTO format expected by frontend
@@ -184,16 +170,15 @@ namespace MixWarz.API.Controllers
                         Id = s.SubmissionId,
                         Title = s.MixTitle ?? $"Submission {s.SubmissionId}",
                         Description = s.MixDescription ?? "",
-                        AudioUrl = audioUrl, // Use the pre-signed URL
+                        AudioUrl = audioUrl,
                         Number = s.SubmissionId,
                         SubmittedAt = s.SubmissionDate
                     };
 
-                    Console.WriteLine($"[GetRound1VotingAssignments] Mapped DTO: ID={dto.Id}, Title='{dto.Title}', AudioUrl='{dto.AudioUrl}'");
                     submissionDtos.Add(dto);
                 }
 
-                Console.WriteLine($"[GetRound1VotingAssignments] Created {submissionDtos.Count} DTOs for frontend");
+                _logger.LogDebug("Created {Count} DTOs for frontend", submissionDtos.Count);
 
                 var response = new Round1VotingAssignmentsResponse
                 {
@@ -202,13 +187,13 @@ namespace MixWarz.API.Controllers
                     VotingDeadline = votingDeadline
                 };
 
-                Console.WriteLine($"[GetRound1VotingAssignments] SUCCESS: Returning {response.Submissions.Count} submissions, HasVoted={response.HasVoted}");
+                _logger.LogDebug("Returning {Count} submissions, HasVoted={HasVoted}", response.Submissions.Count, response.HasVoted);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetRound1VotingAssignments] EXCEPTION: {ex.Message}");
-                Console.WriteLine($"[GetRound1VotingAssignments] StackTrace: {ex.StackTrace}");
+                _logger.LogError(ex, "Error retrieving Round 1 voting assignments for user {UserId} in competition {CompetitionId}", 
+                    userId, competitionId);
                 return BadRequest(new { message = $"Error retrieving Round 1 voting assignments: {ex.Message}" });
             }
         }
@@ -249,6 +234,8 @@ namespace MixWarz.API.Controllers
                     return BadRequest(new { message = "All three ranks (first, second, third) must be provided" });
                 }
 
+                _logger.LogInformation("Submitting Round 1 votes for user {UserId} in competition {CompetitionId}", userId, competitionId);
+
                 // Submit votes using existing service
                 var result = await _round1AssignmentService.ProcessVoterSubmissionAsync(
                     competitionId,
@@ -259,15 +246,19 @@ namespace MixWarz.API.Controllers
 
                 if (result)
                 {
+                    _logger.LogInformation("Round 1 votes submitted successfully for user {UserId}", userId);
                     return Ok(new { success = true, message = "Votes submitted successfully" });
                 }
                 else
                 {
+                    _logger.LogWarning("Failed to submit Round 1 votes for user {UserId}", userId);
                     return BadRequest(new { success = false, message = "Failed to submit votes. Please check your selections and try again." });
                 }
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error submitting Round 1 votes for user {UserId} in competition {CompetitionId}", 
+                    userId, competitionId);
                 return BadRequest(new { message = $"Error submitting Round 1 votes: {ex.Message}" });
             }
         }
@@ -283,31 +274,30 @@ namespace MixWarz.API.Controllers
                        ?? User.FindFirst("userId")?.Value
                        ?? User.FindFirst("sub")?.Value;
 
-            Console.WriteLine($"[GetRound2VotingSubmissions] Starting - CompetitionId: {competitionId}, UserId: '{userId}'");
+            _logger.LogDebug("GetRound2VotingSubmissions - CompetitionId: {CompetitionId}, UserId: {UserId}", competitionId, userId);
 
             if (string.IsNullOrEmpty(userId))
             {
-                Console.WriteLine("[GetRound2VotingSubmissions] User not authenticated");
+                _logger.LogWarning("User not authenticated for Round 2 voting");
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
             try
             {
                 // Get the competition to check status and voting deadline
-                Console.WriteLine($"[GetRound2VotingSubmissions] Fetching competition {competitionId}");
                 var competition = await _competitionRepository.GetByIdAsync(competitionId);
                 if (competition == null)
                 {
-                    Console.WriteLine($"[GetRound2VotingSubmissions] Competition {competitionId} not found");
+                    _logger.LogWarning("Competition {CompetitionId} not found", competitionId);
                     return NotFound(new { message = $"Competition with ID {competitionId} not found" });
                 }
 
-                Console.WriteLine($"[GetRound2VotingSubmissions] Competition found - Status: {competition.Status}");
+                _logger.LogDebug("Competition found - Status: {Status}", competition.Status);
 
                 // Check if competition is in correct status for Round 2 voting
                 if (competition.Status != CompetitionStatus.VotingRound2Open)
                 {
-                    Console.WriteLine($"[GetRound2VotingSubmissions] Competition not open for Round 2 voting. Status: {competition.Status}");
+                    _logger.LogWarning("Competition not open for Round 2 voting. Status: {Status}", competition.Status);
                     return BadRequest(new
                     {
                         message = $"Competition is not open for Round 2 voting. Current status: {competition.Status}"
@@ -315,26 +305,17 @@ namespace MixWarz.API.Controllers
                 }
 
                 // Check if user is eligible for Round 2 voting
-                Console.WriteLine($"[GetRound2VotingSubmissions] Checking user eligibility");
                 var isEligible = await _round2VotingService.IsUserEligibleForRound2VotingAsync(competitionId, userId);
-                Console.WriteLine($"[GetRound2VotingSubmissions] User eligibility: {isEligible}");
-
-                // Note: We don't block access here even if the user is not eligible
-                // They may have already voted or may not have submitted to the competition
-                // The frontend will handle the display based on isEligible flag
-
-                Console.WriteLine($"[GetRound2VotingSubmissions] Fetching Round 2 submissions");
+                _logger.LogDebug("User eligibility for Round 2: {IsEligible}", isEligible);
 
                 // Get Round 2 submissions
                 var submissions = await _round2VotingService.GetRound2SubmissionsAsync(competitionId);
-
-                Console.WriteLine($"[GetRound2VotingSubmissions] Retrieved {submissions?.Count() ?? 0} submissions");
+                _logger.LogDebug("Retrieved {Count} Round 2 submissions", submissions?.Count() ?? 0);
 
                 // Check if we got any submissions
                 if (submissions == null || !submissions.Any())
                 {
-                    Console.WriteLine("[GetRound2VotingSubmissions] No submissions found, returning empty response");
-                    // Return empty response if no submissions found
+                    _logger.LogWarning("No Round 2 submissions found for competition {CompetitionId}", competitionId);
                     var emptyResponse = new Round2VotingSubmissionsResponse
                     {
                         Submissions = new List<SubmissionForVotingDto>(),
@@ -346,12 +327,8 @@ namespace MixWarz.API.Controllers
                 }
 
                 // For Round 2, check if user has voted
-                var hasVoted = false;
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    hasVoted = await _submissionVoteRepository.HasVoterSubmittedAllVotesAsync(userId, competitionId, 2, 3);
-                    Console.WriteLine($"[GetRound2VotingSubmissions] User has voted: {hasVoted}");
-                }
+                var hasVoted = await _submissionVoteRepository.HasVoterSubmittedAllVotesAsync(userId, competitionId, 2, 3);
+                _logger.LogDebug("User has voted in Round 2: {HasVoted}", hasVoted);
 
                 // Calculate voting deadline
                 var votingDeadline = competition.EndDate;
@@ -363,8 +340,6 @@ namespace MixWarz.API.Controllers
                 {
                     try
                     {
-                        Console.WriteLine($"[GetRound2VotingSubmissions] Processing submission {s.SubmissionId}");
-
                         // Generate a pre-signed URL for accessing the audio file (valid for 1 hour)
                         var audioUrl = await FileUrlHelper.ResolveFileUrlAsync(
                             _fileStorageService,
@@ -376,7 +351,7 @@ namespace MixWarz.API.Controllers
                             Id = s.SubmissionId,
                             Title = s.MixTitle ?? $"Submission {s.SubmissionId}",
                             Description = s.MixDescription ?? "",
-                            AudioUrl = audioUrl, // Use the pre-signed URL
+                            AudioUrl = audioUrl,
                             Number = s.SubmissionId,
                             SubmittedAt = s.SubmissionDate
                         };
@@ -385,14 +360,11 @@ namespace MixWarz.API.Controllers
                     }
                     catch (Exception submissionEx)
                     {
-                        // Log the error but continue processing other submissions
-                        // This prevents one bad submission from breaking the entire response
-                        Console.WriteLine($"[GetRound2VotingSubmissions] Error processing submission {s?.SubmissionId}: {submissionEx.Message}");
-                        Console.WriteLine($"[GetRound2VotingSubmissions] Stack trace: {submissionEx.StackTrace}");
+                        _logger.LogError(submissionEx, "Error processing submission {SubmissionId}", s?.SubmissionId);
                     }
                 }
 
-                Console.WriteLine($"[GetRound2VotingSubmissions] Successfully processed {submissionDtos.Count} submissions");
+                _logger.LogDebug("Successfully processed {Count} submissions", submissionDtos.Count);
 
                 var response = new Round2VotingSubmissionsResponse
                 {
@@ -402,13 +374,12 @@ namespace MixWarz.API.Controllers
                     VotingDeadline = votingDeadline
                 };
 
-                Console.WriteLine($"[GetRound2VotingSubmissions] SUCCESS - Returning {response.Submissions.Count} submissions");
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetRound2VotingSubmissions] EXCEPTION: {ex.Message}");
-                Console.WriteLine($"[GetRound2VotingSubmissions] Stack trace: {ex.StackTrace}");
+                _logger.LogError(ex, "Error retrieving Round 2 voting submissions for user {UserId} in competition {CompetitionId}", 
+                    userId, competitionId);
                 return BadRequest(new { message = $"Error retrieving Round 2 voting submissions: {ex.Message}" });
             }
         }
@@ -453,10 +424,13 @@ namespace MixWarz.API.Controllers
                 var isEligible = await _round2VotingService.IsUserEligibleForRound2VotingAsync(competitionId, userId);
                 if (!isEligible)
                 {
+                    _logger.LogWarning("User {UserId} is not eligible for Round 2 voting in competition {CompetitionId}", userId, competitionId);
                     return StatusCode(403, new { message = "User is not eligible for Round 2 voting" });
                 }
 
-                // FIXED: Use ProcessRound2VotesAsync with proper 1st=3pts, 2nd=2pts, 3rd=1pt business logic
+                _logger.LogInformation("Submitting Round 2 votes for user {UserId} in competition {CompetitionId}", userId, competitionId);
+
+                // Use ProcessRound2VotesAsync with proper 1st=3pts, 2nd=2pts, 3rd=1pt business logic
                 bool success = await _round2VotingService.ProcessRound2VotesAsync(
                     competitionId,
                     userId,
@@ -466,15 +440,19 @@ namespace MixWarz.API.Controllers
 
                 if (success)
                 {
+                    _logger.LogInformation("Round 2 votes submitted successfully for user {UserId}", userId);
                     return Ok(new { success = true, message = "Votes submitted successfully" });
                 }
                 else
                 {
+                    _logger.LogWarning("Failed to submit Round 2 votes for user {UserId}", userId);
                     return BadRequest(new { success = false, message = "Failed to submit votes. Please check your eligibility and selections and try again." });
                 }
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error submitting Round 2 votes for user {UserId} in competition {CompetitionId}", 
+                    userId, competitionId);
                 return BadRequest(new { message = $"Error submitting Round 2 votes: {ex.Message}" });
             }
         }
@@ -505,8 +483,8 @@ namespace MixWarz.API.Controllers
                     CompetitionStatus = competition.Status,
                     CompetitionStatusText = competition.Status.ToString(),
                     HasRound1VotingGroups = hasRound1Groups,
-                    Round1GroupCount = round1Assignments.GroupBy(r => r.AssignedGroupNumber).Count(),
-                    VotingSetupComplete = hasRound1Groups && competition.Status == CompetitionStatus.VotingRound1Open,
+                    Round1GroupCount = round1Assignments.GroupBy(ra => ra.AssignedGroupNumber).Count(),
+                    VotingSetupComplete = IsVotingSetupComplete(competition.Status, hasRound1Groups),
                     SetupMessage = GetSetupMessage(competition.Status, hasRound1Groups)
                 };
 
@@ -514,19 +492,26 @@ namespace MixWarz.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = $"Error checking voting status: {ex.Message}" });
+                _logger.LogError(ex, "Error getting voting status for competition {CompetitionId}", competitionId);
+                return BadRequest(new { message = $"Error getting voting status: {ex.Message}" });
             }
+        }
+
+        private bool IsVotingSetupComplete(CompetitionStatus status, bool hasGroups)
+        {
+            return status == CompetitionStatus.VotingRound1Open && hasGroups;
         }
 
         private string GetSetupMessage(CompetitionStatus status, bool hasGroups)
         {
             return status switch
             {
-                CompetitionStatus.VotingRound1Setup when !hasGroups => "Competition needs voting groups created. Admin should call POST /round1/create-groups",
-                CompetitionStatus.VotingRound1Setup when hasGroups => "Voting groups created. Competition ready to transition to VotingRound1Open",
-                CompetitionStatus.VotingRound1Open when !hasGroups => "ERROR: Competition is open for voting but no groups exist. Contact admin.",
-                CompetitionStatus.VotingRound1Open when hasGroups => "Round 1 voting is active and ready",
-                _ => $"Competition status: {status}"
+                CompetitionStatus.SubmissionsPeriod => "Competition is in submission period. Voting setup will be available after submissions close.",
+                CompetitionStatus.VotingRound1Setup => hasGroups ? "Round 1 voting groups are set up and ready." : "Round 1 voting groups need to be created.",
+                CompetitionStatus.VotingRound1Open => hasGroups ? "Round 1 voting is open." : "Round 1 voting groups need to be created before voting can begin.",
+                CompetitionStatus.VotingRound2Open => "Round 2 voting is open.",
+                CompetitionStatus.Completed => "Competition has been completed.",
+                _ => "Competition status not recognized."
             };
         }
 
@@ -540,6 +525,7 @@ namespace MixWarz.API.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                        ?? User.FindFirst("userId")?.Value
                        ?? User.FindFirst("sub")?.Value;
+
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized(new { message = "User not authenticated" });
@@ -547,15 +533,14 @@ namespace MixWarz.API.Controllers
 
             try
             {
-                // Check Round 1 voting status
-                var round1Assignment = await _round1AssignmentRepository.GetByCompetitionAndVoterAsync(competitionId, userId);
-                var hasVotedRound1 = round1Assignment?.HasVoted ?? false;
+                // Check if user has voted in Round 1
+                var hasVotedRound1 = await _submissionVoteRepository.HasVoterSubmittedAllVotesAsync(userId, competitionId, 1, 3);
 
-                // Check Round 2 eligibility
+                // Check if user has voted in Round 2
+                var hasVotedRound2 = await _submissionVoteRepository.HasVoterSubmittedAllVotesAsync(userId, competitionId, 2, 3);
+
+                // Check if user is eligible for Round 2 voting
                 var isEligibleForRound2 = await _round2VotingService.IsUserEligibleForRound2VotingAsync(competitionId, userId);
-
-                // For Round 2 voting status, we'd need to extend the service - for now set to false
-                var hasVotedRound2 = false; // TODO: Implement Round 2 voting status check
 
                 var response = new VotingEligibilityResponse
                 {
@@ -568,6 +553,8 @@ namespace MixWarz.API.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error checking voting eligibility for user {UserId} in competition {CompetitionId}", 
+                    userId, competitionId);
                 return BadRequest(new { message = $"Error checking voting eligibility: {ex.Message}" });
             }
         }
@@ -596,30 +583,42 @@ namespace MixWarz.API.Controllers
                 {
                     CompetitionId = competitionId,
                     SubmissionId = request.SubmissionId,
+                    JudgeId = userId,
                     OverallScore = request.OverallScore,
                     OverallComments = request.OverallComments,
+                    VotingRound = request.VotingRound,
                     CriteriaScores = request.CriteriaScores.Select(cs => new Application.Features.Submissions.Commands.SubmitJudgment.CriteriaScoreDto
                     {
                         JudgingCriteriaId = cs.JudgingCriteriaId,
                         Score = cs.Score,
                         Comments = cs.Comments
-                    }).ToList(),
-                    JudgeId = userId,
-                    VotingRound = request.VotingRound
+                    }).ToList()
                 };
 
                 var result = await _mediator.Send(command);
 
                 if (result.Success)
                 {
+                    _logger.LogInformation("Judgment submitted successfully for submission {SubmissionId} by judge {JudgeId}", 
+                        request.SubmissionId, userId);
                     return Ok(result);
                 }
-
-                return BadRequest(new { message = result.Message });
+                else
+                {
+                    _logger.LogWarning("Failed to submit judgment for submission {SubmissionId} by judge {JudgeId}: {Message}", 
+                        request.SubmissionId, userId, result.Message);
+                    return BadRequest(result);
+                }
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Error submitting judgment: {ex.Message}" });
+                _logger.LogError(ex, "Error submitting judgment for submission {SubmissionId} by judge {JudgeId}", 
+                    request.SubmissionId, userId);
+                return BadRequest(new SubmitJudgmentResponse
+                {
+                    Success = false,
+                    Message = $"Error submitting judgment: {ex.Message}"
+                });
             }
         }
 
@@ -646,6 +645,7 @@ namespace MixWarz.API.Controllers
             {
                 var query = new GetSubmissionJudgmentQuery
                 {
+                    CompetitionId = competitionId,
                     SubmissionId = submissionId,
                     JudgeId = userId,
                     VotingRound = votingRound
@@ -653,13 +653,24 @@ namespace MixWarz.API.Controllers
 
                 var result = await _mediator.Send(query);
 
-                // Always return 200 OK, even when no judgment is found
-                // This is a normal state, not an error condition
-                return Ok(result);
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    return BadRequest(result);
+                }
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Error retrieving judgment: {ex.Message}" });
+                _logger.LogError(ex, "Error getting judgment for submission {SubmissionId} by judge {JudgeId}", 
+                    submissionId, userId);
+                return BadRequest(new GetSubmissionJudgmentResponse
+                {
+                    Success = false,
+                    Message = $"Error getting judgment: {ex.Message}"
+                });
             }
         }
     }
@@ -674,7 +685,7 @@ namespace MixWarz.API.Controllers
         public string Title { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
-        public string? Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [JsonPropertyName("audioUrl")]
         public string AudioUrl { get; set; } = string.Empty;
@@ -689,7 +700,7 @@ namespace MixWarz.API.Controllers
     public class Round1VotingAssignmentsResponse
     {
         [JsonPropertyName("submissions")]
-        public List<SubmissionForVotingDto> Submissions { get; set; } = new List<SubmissionForVotingDto>();
+        public List<SubmissionForVotingDto> Submissions { get; set; } = new();
 
         [JsonPropertyName("hasVoted")]
         public bool HasVoted { get; set; }
@@ -701,7 +712,7 @@ namespace MixWarz.API.Controllers
     public class Round2VotingSubmissionsResponse
     {
         [JsonPropertyName("submissions")]
-        public List<SubmissionForVotingDto> Submissions { get; set; } = new List<SubmissionForVotingDto>();
+        public List<SubmissionForVotingDto> Submissions { get; set; } = new();
 
         [JsonPropertyName("hasVoted")]
         public bool HasVoted { get; set; }
@@ -747,7 +758,7 @@ namespace MixWarz.API.Controllers
         [JsonPropertyName("third")]
         public int? Third { get; set; }
 
-        // Also support the frontend format
+        // Alternative property names for flexibility
         [JsonPropertyName("firstPlace")]
         public int? FirstPlace { get; set; }
 

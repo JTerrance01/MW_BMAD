@@ -46,8 +46,7 @@ echo ""
 echo "📦 Frontend Bundle Optimization..."
 cd src/MixWarz.Client 2>/dev/null
 
-if [ -d "src/MixWarz.Client" ]; then
-    cd src/MixWarz.Client
+if [ -d "." ]; then
     
     print_status "Installing webpack-bundle-analyzer..."
     npm install --save-dev webpack-bundle-analyzer

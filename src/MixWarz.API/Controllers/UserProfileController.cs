@@ -160,7 +160,7 @@ namespace MixWarz.API.Controllers
                         Message = "Validation failed. Please check your request data.",
                         ValidationErrors = ModelState.ToDictionary(
                             kvp => kvp.Key,
-                            kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                            kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>()
                         )
                     });
                 }
@@ -177,7 +177,7 @@ namespace MixWarz.API.Controllers
                     if (file == null)
                     {
                         file = Request.Form.Files.FirstOrDefault();
-                        Console.WriteLine($"Using first file found with name: {file?.Name}");
+                        Console.WriteLine($"Using first file found with name: {file?.Name ?? "no file"}");
                     }
 
                     if (file != null)
@@ -185,9 +185,15 @@ namespace MixWarz.API.Controllers
                         Console.WriteLine($"Found file directly from Request.Form.Files: {file.FileName}");
 
                         // Create a new command with the correct file
+                        var userIdForCommand = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                        if (userIdForCommand == null)
+                        {
+                            return Unauthorized();
+                        }
+
                         command = new UpdateProfilePictureCommand
                         {
-                            UserId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                            UserId = userIdForCommand,
                             ProfilePicture = file
                         };
                     }
@@ -291,7 +297,7 @@ namespace MixWarz.API.Controllers
                 {
                     Success = false,
                     Message = "An error occurred while updating the profile picture",
-                    ProfilePictureUrl = null
+                    ProfilePictureUrl = string.Empty
                 });
             }
         }

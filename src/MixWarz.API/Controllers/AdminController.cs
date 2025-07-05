@@ -462,6 +462,10 @@ namespace MixWarz.API.Controllers
 
                 // STEP 2: Set organizer user ID from claims
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (userId == null)
+                {
+                    return Unauthorized();
+                }
                 _logger.LogInformation("Setting organizer ID from claims: {UserId}", userId);
                 command.OrganizerUserId = userId;
 
@@ -514,8 +518,7 @@ namespace MixWarz.API.Controllers
 
                 _logger.LogInformation("Cover image uploaded successfully: {Url}", command.ImageUrl);
 
-                // Clear the file reference since we now have the URL
-                command.CoverImage = null;
+                // File reference processed and URL assigned
             }
 
             // Process multitrack zip upload
@@ -533,14 +536,13 @@ namespace MixWarz.API.Controllers
 
                 _logger.LogInformation("Multitrack zip uploaded successfully: {Url}", command.MultitrackZipUrl);
 
-                // Clear the file reference since we now have the URL
-                command.MultitrackZipFile = null;
+                // File reference processed and URL assigned
             }
             else if (string.IsNullOrEmpty(command.MultitrackZipUrl) || command.MultitrackZipUrl == "FILE_UPLOAD_PLACEHOLDER")
             {
                 // If no file and no valid URL, this will fail validation as expected
                 _logger.LogWarning("No multitrack file provided and no valid URL");
-                command.MultitrackZipUrl = null;
+                command.MultitrackZipUrl = string.Empty;
             }
 
             // Process source track upload
@@ -558,14 +560,13 @@ namespace MixWarz.API.Controllers
 
                 _logger.LogInformation("Source track uploaded successfully: {Url}", command.SourceTrackUrl);
 
-                // Clear the file reference since we now have the URL
-                command.SourceTrackFile = null;
+                // File reference processed and URL assigned
             }
             else if (string.IsNullOrEmpty(command.SourceTrackUrl) || command.SourceTrackUrl == "FILE_UPLOAD_PLACEHOLDER")
             {
                 // If no file and no valid URL, this will fail validation as expected
                 _logger.LogWarning("No source track file provided and no valid URL");
-                command.SourceTrackUrl = null;
+                command.SourceTrackUrl = string.Empty;
             }
 
             _logger.LogInformation("Final URL values - ImageUrl: {ImageUrl}, MultitrackZipUrl: {MultitrackZipUrl}, SourceTrackUrl: {SourceTrackUrl}",
@@ -681,6 +682,10 @@ namespace MixWarz.API.Controllers
 
                 // STEP 3: Set organizer user ID from claims
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (userId == null)
+                {
+                    return Unauthorized();
+                }
                 _logger.LogInformation("Setting organizer ID from claims: {UserId}", userId);
                 command.OrganizerUserId = userId;
 
@@ -741,8 +746,7 @@ namespace MixWarz.API.Controllers
 
                 _logger.LogInformation("Cover image uploaded successfully: {Url}", command.ImageUrl);
 
-                // Clear the file reference since we now have the URL
-                command.CoverImage = null;
+                // File reference processed and URL assigned
             }
 
             // Process multitrack zip upload
@@ -760,8 +764,7 @@ namespace MixWarz.API.Controllers
 
                 _logger.LogInformation("Multitrack zip uploaded successfully: {Url}", command.MultitrackZipUrl);
 
-                // Clear the file reference since we now have the URL
-                command.MultitrackZipFile = null;
+                // File reference processed and URL assigned
             }
 
             // Process source track upload
@@ -779,8 +782,7 @@ namespace MixWarz.API.Controllers
 
                 _logger.LogInformation("Source track uploaded successfully: {Url}", command.SourceTrackUrl);
 
-                // Clear the file reference since we now have the URL
-                command.SourceTrackFile = null;
+                // File reference processed and URL assigned
             }
 
             _logger.LogInformation("Final URL values - ImageUrl: {ImageUrl}, MultitrackZipUrl: {MultitrackZipUrl}, SourceTrackUrl: {SourceTrackUrl}",

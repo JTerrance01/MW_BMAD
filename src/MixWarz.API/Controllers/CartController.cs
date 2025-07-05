@@ -27,6 +27,10 @@ namespace MixWarz.API.Controllers
         public async Task<ActionResult<CartDto>> GetCart()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
             var result = await _mediator.Send(new GetCartQuery { UserId = userId });
             return Ok(result);
         }
@@ -35,7 +39,12 @@ namespace MixWarz.API.Controllers
         public async Task<ActionResult<int>> AddToCart(AddToCartCommand command)
         {
             // Override the UserId with the authenticated user's ID
-            command.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            command.UserId = userId;
             var result = await _mediator.Send(command);
             return Ok(result);
         }
@@ -44,7 +53,12 @@ namespace MixWarz.API.Controllers
         public async Task<ActionResult<bool>> UpdateCartItem(UpdateCartItemCommand command)
         {
             // Override the UserId with the authenticated user's ID
-            command.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            command.UserId = userId;
             var result = await _mediator.Send(command);
             return Ok(result);
         }
@@ -53,7 +67,12 @@ namespace MixWarz.API.Controllers
         public async Task<ActionResult<bool>> RemoveFromCart(RemoveFromCartCommand command)
         {
             // Override the UserId with the authenticated user's ID
-            command.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+            command.UserId = userId;
             var result = await _mediator.Send(command);
             return Ok(result);
         }
@@ -62,9 +81,13 @@ namespace MixWarz.API.Controllers
         public async Task<ActionResult<bool>> ClearCart()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
             var command = new ClearCartCommand { UserId = userId };
             var result = await _mediator.Send(command);
             return Ok(result);
         }
     }
-} 
+}

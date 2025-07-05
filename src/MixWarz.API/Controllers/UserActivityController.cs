@@ -60,7 +60,7 @@ namespace MixWarz.API.Controllers
             [FromQuery] int? activityType = null,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
-            [FromQuery] string relatedEntityType = null,
+            [FromQuery] string? relatedEntityType = null,
             [FromQuery] int? relatedEntityId = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
@@ -115,7 +115,7 @@ namespace MixWarz.API.Controllers
                     ActivityType = parsedActivityType,
                     StartDate = startDate,
                     EndDate = endDate,
-                    RelatedEntityType = relatedEntityType,
+                    RelatedEntityType = relatedEntityType ?? string.Empty,
                     RelatedEntityId = relatedEntityId,
                     PageNumber = Math.Max(1, pageNumber), // Ensure positive page number
                     PageSize = pageSize
@@ -187,11 +187,14 @@ namespace MixWarz.API.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<int>> TrackAnonymousActivity([FromBody] TrackUserActivityCommand command)
         {
-            // Ensure this is marked as anonymous regardless of auth status
-            if (command != null)
+            // Validate command is not null
+            if (command == null)
             {
-                command.UserId = "anonymous";
+                return BadRequest(new { message = "Activity data is required" });
             }
+
+            // Ensure this is marked as anonymous regardless of auth status
+            command.UserId = "anonymous";
 
             return await TrackActivityInternal(command);
         }
@@ -242,7 +245,7 @@ namespace MixWarz.API.Controllers
                 }
 
                 // Set user ID and request metadata
-                command.UserId = userId;
+                command.UserId = userId ?? "anonymous";
                 command.IPAddress = GetClientIPAddress();
                 command.UserAgent = GetUserAgent();
 
@@ -285,7 +288,7 @@ namespace MixWarz.API.Controllers
         [HttpGet("all")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<PaginatedList<UserActivityDto>>> GetAllUserActivities(
-            [FromQuery] string userId,
+            [FromQuery] string? userId = null,
             [FromQuery] int? activityType = null,
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
@@ -314,7 +317,7 @@ namespace MixWarz.API.Controllers
 
                 var query = new GetUserActivitiesQuery
                 {
-                    UserId = userId,
+                    UserId = userId ?? string.Empty,
                     ActivityType = parsedActivityType,
                     StartDate = startDate,
                     EndDate = endDate,
@@ -393,12 +396,12 @@ namespace MixWarz.API.Controllers
         // Special endpoint for no-cors tracking with image beacon pattern
         [HttpGet("beacon")]
         [AllowAnonymous]
-        public async Task<IActionResult> TrackBeacon(
+        public IActionResult TrackBeacon(
             [FromQuery] int type,
-            [FromQuery] string description = null,
-            [FromQuery] string relatedEntityType = null,
+            [FromQuery] string? description = null,
+            [FromQuery] string? relatedEntityType = null,
             [FromQuery] int? relatedEntityId = null,
-            [FromQuery] string timestamp = null)
+            [FromQuery] string? timestamp = null)
         {
             Console.WriteLine("[ACTIVITY] Received beacon tracking request");
 
@@ -409,7 +412,7 @@ namespace MixWarz.API.Controllers
                 {
                     Type = (ActivityType)type,
                     Description = description ?? $"Beacon tracking for type {type}",
-                    RelatedEntityType = relatedEntityType,
+                    RelatedEntityType = relatedEntityType ?? string.Empty,
                     RelatedEntityId = relatedEntityId,
                     UserId = "anonymous" // Always use anonymous for beacon requests
                 };
@@ -443,8 +446,8 @@ namespace MixWarz.API.Controllers
                 };
 
                 // Set CORS headers
-                Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
+                Response.Headers["Access-Control-Allow-Origin"] = "*";
+                Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
 
                 return File(transparentGif, "image/gif");
             }
@@ -461,7 +464,7 @@ namespace MixWarz.API.Controllers
                     0x01, 0x00, 0x3B
                 };
 
-                Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                Response.Headers["Access-Control-Allow-Origin"] = "*";
                 return File(transparentGif, "image/gif");
             }
         }

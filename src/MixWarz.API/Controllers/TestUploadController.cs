@@ -144,7 +144,7 @@ namespace MixWarz.API.Controllers
 
         [HttpPost("debug-bio")]
         [AllowAnonymous]
-        public async Task<IActionResult> DebugBioUpdate([FromBody] UpdateBioModel model)
+        public IActionResult DebugBioUpdate([FromBody] UpdateBioModel model)
         {
             try
             {
@@ -172,7 +172,7 @@ namespace MixWarz.API.Controllers
         }
 
         [HttpPost("test-profile-picture")]
-        public async Task<IActionResult> TestProfilePicture([FromForm] IFormFile ProfilePicture)
+        public IActionResult TestProfilePicture([FromForm] IFormFile ProfilePicture)
         {
             try
             {
@@ -220,7 +220,7 @@ namespace MixWarz.API.Controllers
         // Model for bio update
         public class UpdateBioModel
         {
-            public string Bio { get; set; }
+            public string? Bio { get; set; }
         }
     }
 }

@@ -108,7 +108,7 @@ namespace MixWarz.API.Controllers
                     return Ok(new
                     {
                         hasSubmission = false,
-                        submission = (UserSubmissionDto)null,
+                        submission = (UserSubmissionDto?)null,
                         message = "No submission found for this competition"
                     });
                 }
@@ -147,7 +147,7 @@ namespace MixWarz.API.Controllers
             var command = new DeleteSubmissionCommand
             {
                 SubmissionId = submissionId,
-                UserId = userId
+                UserId = userId! // Null check is performed above
             };
 
             var result = await _mediator.Send(command);
@@ -157,20 +157,20 @@ namespace MixWarz.API.Controllers
                 return Ok(result);
             }
 
-            if (result.Message.Contains("not found"))
+            if (result.Message?.Contains("not found") == true)
             {
                 return NotFound(result.Message);
             }
-            else if (result.Message.Contains("not authorized"))
+            else if (result.Message?.Contains("not authorized") == true)
             {
                 return Forbid(result.Message);
             }
-            else if (result.Message.Contains("no longer open") || result.Message.Contains("deadline has passed"))
+            else if (result.Message?.Contains("no longer open") == true || result.Message?.Contains("deadline has passed") == true)
             {
                 return BadRequest(result.Message);
             }
 
-            return BadRequest(result.Message);
+            return BadRequest(result.Message ?? "An error occurred");
         }
 
         [HttpPatch("{submissionId}/judge")]
@@ -194,7 +194,7 @@ namespace MixWarz.API.Controllers
                 SubmissionId = submissionId,
                 Score = request.Score,
                 Feedback = request.Feedback,
-                JudgeUserId = userId,
+                JudgeUserId = userId!, // Null check is performed above
                 IsAdmin = isAdmin
             };
 
@@ -205,11 +205,11 @@ namespace MixWarz.API.Controllers
                 return Ok(result);
             }
 
-            if (result.Message.Contains("not found"))
+            if (result.Message?.Contains("not found") == true)
             {
                 return NotFound(result.Message);
             }
-            else if (result.Message.Contains("not authorized"))
+            else if (result.Message?.Contains("not authorized") == true)
             {
                 return StatusCode(403, new { message = result.Message });
             }
@@ -252,16 +252,16 @@ namespace MixWarz.API.Controllers
             }
             catch (Exception ex)
             {
-                if (ex.Message.Contains("not found"))
+                if (ex.Message?.Contains("not found") == true)
                 {
                     return NotFound($"Competition with ID {competitionId} not found");
                 }
-                else if (ex.Message.Contains("not authorized"))
+                else if (ex.Message?.Contains("not authorized") == true)
                 {
                     return Forbid();
                 }
 
-                return BadRequest(ex.Message);
+                return BadRequest(ex.Message ?? "An error occurred");
             }
         }
 
@@ -293,7 +293,7 @@ namespace MixWarz.API.Controllers
             var command = new CreateSubmissionCommand
             {
                 CompetitionId = competitionId,
-                UserId = userId,
+                UserId = userId ?? string.Empty, // UserId cannot be null due to check above, but use fallback
                 MixTitle = mixTitle,
                 MixDescription = mixDescription,
                 AudioFile = audioFile

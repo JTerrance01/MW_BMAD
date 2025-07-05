@@ -228,7 +228,7 @@ namespace MixWarz.API.Controllers
                 {
                     Success = false,
                     Message = "An error occurred while retrieving the article. Please try again later.",
-                    Article = (object)null
+                    Article = (object?)null
                 });
             }
         }

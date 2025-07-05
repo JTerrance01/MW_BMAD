@@ -607,9 +607,9 @@ namespace MixWarz.API.Controllers
     public class NonVoterInfo
     {
         public int AssignmentId { get; set; }
-        public string VoterId { get; set; }
-        public string VoterUsername { get; set; }
-        public string VoterEmail { get; set; }
+        public string VoterId { get; set; } = string.Empty;
+        public string VoterUsername { get; set; } = string.Empty;
+        public string VoterEmail { get; set; } = string.Empty;
         public int VoterGroupNumber { get; set; }
         public int AssignedGroupNumber { get; set; }
     }
@@ -629,8 +629,8 @@ namespace MixWarz.API.Controllers
     {
         public int SubmissionId { get; set; }
         public int SubmissionGroupId { get; set; }
-        public string TrackTitle { get; set; }
-        public string SubmittedBy { get; set; }
+        public string TrackTitle { get; set; } = string.Empty;
+        public string SubmittedBy { get; set; } = string.Empty;
         public int TotalPoints { get; set; }
         public int FirstPlaceVotes { get; set; }
         public int SecondPlaceVotes { get; set; }
@@ -641,8 +641,8 @@ namespace MixWarz.API.Controllers
 
     public class VoterDetails
     {
-        public string VoterId { get; set; }
-        public string Username { get; set; }
+        public string VoterId { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
         public bool HasVoted { get; set; }
         public DateTimeOffset? VotingCompletedDate { get; set; }
         public int VoterGroupNumber { get; set; }
@@ -651,8 +651,8 @@ namespace MixWarz.API.Controllers
     public class AdvancingSubmissionInfo
     {
         public int SubmissionId { get; set; }
-        public string MixTitle { get; set; }
-        public string Artist { get; set; }
+        public string MixTitle { get; set; } = string.Empty;
+        public string Artist { get; set; } = string.Empty;
         public int GroupNumber { get; set; }
         public int RankInGroup { get; set; }
         public int TotalPoints { get; set; }

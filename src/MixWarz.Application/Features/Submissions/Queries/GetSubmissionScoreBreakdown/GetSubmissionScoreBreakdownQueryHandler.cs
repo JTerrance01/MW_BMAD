@@ -37,38 +37,58 @@ namespace MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBre
             if (!hasRound1Completed)
                 throw new ApplicationException("Score breakdown is only available after Round 1 voting has been completed");
 
-            // ENHANCED: Check for both judging data and voting data to support all users
-            // First try to get judgment data (for users who used judging interface)
+            // Determine scoring method and calculate results
+            var scoringResult = await DetermineAndCalculateScoresAsync(request.SubmissionId, submission.CompetitionId, cancellationToken);
+
+            if (scoringResult == null)
+                throw new ApplicationException("No voting or judging data available for this submission");
+
+            return new GetSubmissionScoreBreakdownResponse
+            {
+                SubmissionId = submission.SubmissionId,
+                MixTitle = submission.MixTitle,
+                CompetitionTitle = submission.Competition.Title,
+                FinalScore = Math.Round(scoringResult.FinalScore, 2),
+                Ranking = scoringResult.Ranking,
+                CriteriaBreakdowns = scoringResult.CriteriaBreakdowns.OrderBy(cb => cb.DisplayOrder).ToList(),
+                TotalJudges = scoringResult.TotalParticipants,
+                IsCompleted = true
+            };
+        }
+
+        private async Task<ScoringResult?> DetermineAndCalculateScoresAsync(int submissionId, int competitionId, CancellationToken cancellationToken)
+        {
+            // Score Breakdown ALWAYS uses SubmissionJudgments (processed results from voting/judging)
             var judgments = await _context.SubmissionJudgments
-                .Where(sj => sj.SubmissionId == request.SubmissionId &&
+                .Where(sj => sj.SubmissionId == submissionId &&
                            sj.VotingRound == 1 &&
                            sj.IsCompleted == true)
                 .Include(sj => sj.CriteriaScores)
                     .ThenInclude(cs => cs.JudgingCriteria)
                 .ToListAsync(cancellationToken);
 
-            // If no judgment data, check for voting data (for users who used traditional voting)
-            var votes = await _context.SubmissionVotes
-                .Where(sv => sv.SubmissionId == request.SubmissionId &&
-                           sv.VotingRound == 1)
+            if (!judgments.Any())
+                return null; // No judgment data found
+
+            return await CalculateJudgmentBasedScoresAsync(submissionId, competitionId, judgments, cancellationToken);
+        }
+
+        private async Task<ScoringResult> CalculateJudgmentBasedScoresAsync(int submissionId, int competitionId,
+            List<MixWarz.Domain.Entities.SubmissionJudgment> judgments, CancellationToken cancellationToken)
+        {
+            var criteriaBreakdowns = new List<CriteriaScoreBreakdown>();
+
+            // Check if competition uses detailed criteria or simple scoring
+            var allCriteria = await _context.JudgingCriterias
+                .Where(jc => jc.CompetitionId == competitionId)
+                .OrderBy(jc => jc.DisplayOrder)
                 .ToListAsync(cancellationToken);
 
-            if (!judgments.Any() && !votes.Any())
-                throw new ApplicationException("No voting or judging data available for this submission");
-
-            // Build response based on available data type
-            var criteriaBreakdowns = new List<CriteriaScoreBreakdown>();
             decimal finalScore = 0;
-            int totalJudges = 0;
 
-            if (judgments.Any())
+            if (allCriteria.Any())
             {
-                // DETAILED SCORING: User participated in judging with criteria breakdown
-                var allCriteria = await _context.JudgingCriterias
-                    .Where(jc => jc.CompetitionId == submission.CompetitionId)
-                    .OrderBy(jc => jc.DisplayOrder)
-                    .ToListAsync(cancellationToken);
-
+                // Detailed criteria-based scoring (traditional judging)
                 foreach (var criteria in allCriteria)
                 {
                     var criteriaScores = judgments
@@ -102,58 +122,54 @@ namespace MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBre
                 }
 
                 finalScore = criteriaBreakdowns.Sum(cb => cb.WeightedScore);
-                totalJudges = judgments.Count;
             }
-            else if (votes.Any())
+            else
             {
-                // VOTING SUMMARY: User participated in traditional voting (no detailed criteria)
-                var totalPoints = votes.Sum(v => v.Points);
-                var firstPlaceVotes = votes.Count(v => v.Rank == 1);
-                var secondPlaceVotes = votes.Count(v => v.Rank == 2);
-                var thirdPlaceVotes = votes.Count(v => v.Rank == 3);
+                // Simple scoring - use OverallScore from judgments (processed from voting)
+                var judgmentsWithScores = judgments.Where(j => j.OverallScore.HasValue).ToList();
 
-                // Create a summary "criteria" for voting breakdown
-                criteriaBreakdowns.Add(new CriteriaScoreBreakdown
+                if (judgmentsWithScores.Any())
                 {
-                    CriteriaId = 0,
-                    CriteriaName = "Overall Voting Summary",
-                    CriteriaDescription = "Summary of votes received from all participants",
-                    Weight = 1.0m,
-                    MinScore = 0,
-                    MaxScore = totalPoints,
-                    AverageScore = totalPoints,
-                    WeightedScore = totalPoints,
-                    JudgesComments = new List<string>
-                    {
-                        $"Received {firstPlaceVotes} first-place votes (3 points each)",
-                        $"Received {secondPlaceVotes} second-place votes (2 points each)",
-                        $"Received {thirdPlaceVotes} third-place votes (1 point each)",
-                        $"Total: {totalPoints} points from {votes.Count} voters"
-                    },
-                    DisplayOrder = 1
-                });
+                    var averageOverallScore = judgmentsWithScores.Average(j => j.OverallScore!.Value);
+                    var totalPoints = judgmentsWithScores.Sum(j => j.OverallScore!.Value);
+                    var comments = judgments
+                        .Where(j => !string.IsNullOrWhiteSpace(j.OverallComments))
+                        .Select(j => j.OverallComments!)
+                        .ToList();
 
-                finalScore = totalPoints;
-                totalJudges = votes.Count;
+                    // Create a simple summary breakdown
+                    criteriaBreakdowns.Add(new CriteriaScoreBreakdown
+                    {
+                        CriteriaId = 0,
+                        CriteriaName = "Overall Score",
+                        CriteriaDescription = "Total score from Round 1 evaluation",
+                        Weight = 1.0m,
+                        MinScore = 0,
+                        MaxScore = (int)judgmentsWithScores.Max(j => j.OverallScore!.Value),
+                        AverageScore = Math.Round(averageOverallScore, 2),
+                        WeightedScore = Math.Round(averageOverallScore, 2),
+                        JudgesComments = comments.Any()
+                            ? comments
+                            : new List<string> { $"📊 Average score: {averageOverallScore:F2} from {judgmentsWithScores.Count} evaluations" },
+                        DisplayOrder = 1
+                    });
+
+                    finalScore = averageOverallScore;
+                }
             }
 
-            // Get ranking from submission groups or calculate from final score
-            var ranking = await GetSubmissionRanking(submission.SubmissionId, submission.CompetitionId, cancellationToken);
+            var ranking = await CalculateJudgmentBasedRankingAsync(submissionId, competitionId, cancellationToken);
 
-            return new GetSubmissionScoreBreakdownResponse
+            return new ScoringResult
             {
-                SubmissionId = submission.SubmissionId,
-                MixTitle = submission.MixTitle,
-                CompetitionTitle = submission.Competition.Title,
-                FinalScore = Math.Round(finalScore, 2),
+                FinalScore = finalScore,
                 Ranking = ranking,
-                CriteriaBreakdowns = criteriaBreakdowns.OrderBy(cb => cb.DisplayOrder).ToList(),
-                TotalJudges = totalJudges,
-                IsCompleted = true
+                CriteriaBreakdowns = criteriaBreakdowns,
+                TotalParticipants = judgments.Count
             };
         }
 
-        private async Task<int> GetSubmissionRanking(int submissionId, int competitionId, CancellationToken cancellationToken)
+        private async Task<int> CalculateJudgmentBasedRankingAsync(int submissionId, int competitionId, CancellationToken cancellationToken)
         {
             // Try to get ranking from submission groups first
             var submissionGroup = await _context.SubmissionGroups
@@ -165,7 +181,7 @@ namespace MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBre
                 return submissionGroup.RankInGroup.Value;
             }
 
-            // If no rank in submission groups, calculate based on overall scores
+            // Calculate ranking based on OverallScore from SubmissionJudgments
             var allSubmissionScores = await _context.SubmissionJudgments
                 .Where(sj => sj.CompetitionId == competitionId &&
                            sj.VotingRound == 1 &&
@@ -180,6 +196,14 @@ namespace MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBre
                 .FindIndex(s => s.SubmissionId == submissionId) + 1;
 
             return currentSubmissionRank > 0 ? currentSubmissionRank : 0;
+        }
+
+        private class ScoringResult
+        {
+            public decimal FinalScore { get; set; }
+            public int Ranking { get; set; }
+            public List<CriteriaScoreBreakdown> CriteriaBreakdowns { get; set; } = new();
+            public int TotalParticipants { get; set; }
         }
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
 import { submitCompetitionEntry } from "../../store/competitionSlice";
@@ -6,10 +6,9 @@ import { FaCloudUploadAlt, FaMusic } from "react-icons/fa";
 
 const SubmissionUploadForm = ({ competitionId }) => {
   const dispatch = useDispatch();
-  const { submitting, submission, error } = useSelector(
+  const { submitting, error } = useSelector(
     (state) => state.competitions
   );
-  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
     mixTitle: "",
@@ -27,6 +26,13 @@ const SubmissionUploadForm = ({ competitionId }) => {
     "audio/mp3",
     "audio/mpeg"
   ];
+
+  // Reset success state when competition changes
+  useEffect(() => {
+    setSubmitSuccess(false);
+    setFormError("");
+    setFileError("");
+  }, [competitionId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -121,7 +127,7 @@ const SubmissionUploadForm = ({ competitionId }) => {
   };
 
   // If user has successfully submitted, show success message
-  if (submitSuccess || submission?.success) {
+  if (submitSuccess) {
     return (
       <Card
         className="border-0 shadow-sm mb-4"

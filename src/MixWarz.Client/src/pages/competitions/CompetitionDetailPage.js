@@ -11,7 +11,7 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCompetitionById, getUserSubmission } from "../../store/competitionSlice";
+import { fetchCompetitionById, getUserSubmission, clearSubmission } from "../../store/competitionSlice";
 import {
   fetchRound1VotingAssignments,
   fetchRound2VotingSubmissions,
@@ -300,6 +300,8 @@ const CompetitionDetailPage = () => {
       console.log(`Fetching competition ${id} - current competition:`, competition?.competitionId);
       // Clear the submission fetch tracking when competition changes
       fetchedSubmissionRef.current.clear();
+      // Clear any previous submission state to prevent success messages from other competitions
+      dispatch(clearSubmission());
       dispatch(fetchCompetitionById(id));
     }
   }, [dispatch, id, loading, competition?.competitionId]);

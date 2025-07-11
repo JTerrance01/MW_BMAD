@@ -196,7 +196,7 @@ const SubmissionScoreBreakdownModal = ({
                           Judges' Comments:
                         </h6>
                         <div className="judges-comments">
-                          {criteria.judgesComments.map((comment, commentIndex) => (
+                          {criteria.judgesComments.slice(0, 3).map((comment, commentIndex) => (
                             <div
                               key={commentIndex}
                               className="bg-secondary p-2 rounded mb-2 border-start border-primary border-3"
@@ -206,6 +206,11 @@ const SubmissionScoreBreakdownModal = ({
                               </small>
                             </div>
                           ))}
+                          {criteria.judgesComments.length > 3 && (
+                            <small className="text-muted fst-italic">
+                              +{criteria.judgesComments.length - 3} more comments available
+                            </small>
+                          )}
                         </div>
                       </div>
                     )}

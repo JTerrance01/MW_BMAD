@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MixWarz.Application.Common.Interfaces;
 using MixWarz.Domain.Entities;
+using MixWarz.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace MixWarz.Application.Features.Submissions.Commands.SubmitJudgment
@@ -38,15 +39,18 @@ namespace MixWarz.Application.Features.Submissions.Commands.SubmitJudgment
     public class SubmitJudgmentCommandHandler : IRequestHandler<SubmitJudgmentCommand, SubmitJudgmentResponse>
     {
         private readonly IAppDbContext _context;
+        private readonly ISubmissionRepository _submissionRepository;
         private readonly UserManager<User> _userManager;
         private readonly ILogger<SubmitJudgmentCommandHandler> _logger;
 
         public SubmitJudgmentCommandHandler(
             IAppDbContext context,
+            ISubmissionRepository submissionRepository,
             UserManager<User> userManager,
             ILogger<SubmitJudgmentCommandHandler> logger)
         {
             _context = context;
+            _submissionRepository = submissionRepository;
             _userManager = userManager;
             _logger = logger;
         }
@@ -130,9 +134,6 @@ namespace MixWarz.Application.Features.Submissions.Commands.SubmitJudgment
                 judgment.OverallComments = request.OverallComments;
                 judgment.LastUpdated = DateTimeOffset.UtcNow;
                 judgment.IsCompleted = true;
-
-                // Remove existing criteria scores
-                _context.CriteriaScores.RemoveRange(judgment.CriteriaScores);
             }
             else
             {
@@ -148,12 +149,7 @@ namespace MixWarz.Application.Features.Submissions.Commands.SubmitJudgment
                     JudgmentTime = DateTimeOffset.UtcNow,
                     IsCompleted = true
                 };
-
-                _context.SubmissionJudgments.Add(judgment);
             }
-
-            // Save to get the judgment ID
-            await _context.SaveChangesAsync(cancellationToken);
 
             // ENHANCED: Auto-generate CriteriaScores if not provided but JudgingCriterias exist
             var criteriaScores = new List<CriteriaScore>();
@@ -203,7 +199,8 @@ namespace MixWarz.Application.Features.Submissions.Commands.SubmitJudgment
                 }
             }
 
-            _context.CriteriaScores.AddRange(criteriaScores);
+            // Use repository method to handle judgment and criteria scores persistence with transaction
+            await _submissionRepository.AddJudgmentWithScoresAsync(judgment, criteriaScores, isUpdate, cancellationToken);
 
             // UNIFIED APPROACH: Auto-generate SubmissionVotes for Round 1 judgments
             bool votesGenerated = false;

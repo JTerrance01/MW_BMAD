@@ -1,0 +1,202 @@
+Context:
+
+The application has a SubmitJudgmentCommand that is sent from the API to the application layer.
+
+The command contains SubmissionId, JudgeId, CompetitionId, and a list of scores (List<CriteriaScoreDto>). Each CriteriaScoreDto has CriteriaId and Score.
+
+I have two main database tables involved: SubmissionJudgement and CriteriaScore. The provided image, SubmitJudgement_DbUPdates.jpg, illustrates the desired database updates. When a judgment is submitted, a new row should be added to SubmissionJudgement, and multiple rows should be added to CriteriaScore, one for each criterion in the judgment.
+
+I have a repository pattern with an ISubmissionRepository interface and a SubmissionRepository implementation, which use IAppDbContext for database access.
+
+Task:
+
+Create the SubmitJudgmentCommandHandler for the SubmitJudgmentCommand.
+
+The implementation must avoid code duplication. To achieve this, please create a new method in the ISubmissionRepository and SubmissionRepository called AddJudgmentWithScoresAsync.
+
+This new repository method should handle all the database logic:
+
+It should accept a SubmissionJudgement entity and an IEnumerable<CriteriaScore>.
+
+It must use a database transaction to ensure that adding the SubmissionJudgement and all CriteriaScore records either all succeed or all fail together.
+
+Inside the transaction:
+a. Add the SubmissionJudgement and save it to get its generated ID.
+b. Associate each CriteriaScore with the new SubmissionJudgement's ID.
+c. Add all CriteriaScore records.
+d. Save changes and commit the transaction.
+e. Roll back the transaction if any error occurs.
+
+The SubmitJudgmentCommandHandler should:
+
+Perform basic validation (e.g., check if the submission exists and if the judge has already voted).
+
+Map the SubmitJudgmentCommand to SubmissionJudgement and CriteriaScore domain entities.
+
+Call the new AddJudgmentWithScoresAsync method in the repository to persist the data.
+
+Return the ID of the newly created SubmissionJudgement.
+
+Please provide the complete C# code for:
+
+The new method signature in ISubmissionRepository.cs.
+
+The implementation of the new method in SubmissionRepository.cs.
+
+The full SubmitJudgmentCommandHandler.cs class.
+
+Feature Implementation
+Here is the code that implements the requested feature, designed to be clean, reusable, and fit within your existing architecture.
+
+1. Update ISubmissionRepository Interface
+First, let's add the new method signature to your repository interface to ensure a clean separation of concerns.
+
+C#
+
+// src/MixWarz.Domain/Interfaces/ISubmissionRepository.cs
+using MixWarz.Domain.Entities;
+
+namespace MixWarz.Domain.Interfaces;
+
+public interface ISubmissionRepository
+{
+    // ... other existing methods
+
+    /// <summary>
+    /// Adds a new submission judgement and its associated criteria scores to the database within a single transaction.
+    /// </summary>
+    /// <param name="judgement">The submission judgement entity to add.</param>
+    /// <param name="scores">A collection of criteria scores associated with the judgement.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task AddJudgmentWithScoresAsync(SubmissionJudgement judgement, IEnumerable<CriteriaScore> scores, CancellationToken cancellationToken);
+}
+
+
+2. Implement the Repository Method
+Next, here's the implementation of the AddJudgmentWithScoresAsync method in your SubmissionRepository. This method encapsulates the database logic and uses a transaction to maintain data integrity.
+
+C#
+
+// src/MixWarz.Infrastructure/Persistence/Repositories/SubmissionRepository.cs
+using Microsoft.EntityFrameworkCore;
+using MixWarz.Application.Common.Interfaces;
+using MixWarz.Domain.Entities;
+using MixWarz.Domain.Interfaces;
+
+namespace MixWarz.Infrastructure.Persistence.Repositories;
+
+public class SubmissionRepository : ISubmissionRepository
+{
+    private readonly IAppDbContext _context;
+
+    public SubmissionRepository(IAppDbContext context)
+    {
+        _context = context;
+    }
+
+    // ... other existing method implementations
+
+    public async Task AddJudgmentWithScoresAsync(SubmissionJudgement judgement, IEnumerable<CriteriaScore> scores, CancellationToken cancellationToken)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            // Add and save the SubmissionJudgement to get its ID
+            _context.SubmissionJudgments.Add(judgement);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Assign the new SubmissionJudgementId to each CriteriaScore
+            foreach (var score in scores)
+            {
+                score.SubmissionJudgementId = judgement.Id;
+            }
+
+            // Add all the CriteriaScore records
+            await _context.CriteriaScores.AddRangeAsync(scores, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Commit the transaction
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            // If anything fails, roll back the transaction and re-throw
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+}
+
+
+3. Create the Command Handler
+Finally, this command handler orchestrates the process by validating the request, mapping the data, and calling the repository.
+
+C#
+
+// src/MixWarz.Application/Features/Submissions/Commands/SubmitJudgment/SubmitJudgmentCommandHandler.cs
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using MixWarz.Application.Common.Interfaces;
+using MixWarz.Application.Features.Submissions.Commands.SubmitJudgment;
+using MixWarz.Domain.Entities;
+using MixWarz.Domain.Interfaces;
+
+namespace MixWarz.Application.Features.Submissions.Commands.SubmitJudgment;
+
+public class SubmitJudgmentCommandHandler : IRequestHandler<SubmitJudgmentCommand, Result<int>>
+{
+    private readonly ISubmissionRepository _submissionRepository;
+    private readonly IAppDbContext _context;
+
+    public SubmitJudgmentCommandHandler(ISubmissionRepository submissionRepository, IAppDbContext context)
+    {
+        _submissionRepository = submissionRepository;
+        _context = context;
+    }
+
+    public async Task<Result<int>> Handle(SubmitJudgmentCommand request, CancellationToken cancellationToken)
+    {
+        var submission = await _context.Submissions.FindAsync(new object[] { request.SubmissionId }, cancellationToken);
+        if (submission == null)
+        {
+            return Result<int>.Failure($"Submission with Id {request.SubmissionId} not found.");
+        }
+
+        var existingJudgment = await _context.SubmissionJudgments
+            .AnyAsync(j => j.SubmissionId == request.SubmissionId && j.JudgeId == request.JudgeId, cancellationToken);
+
+        if (existingJudgment)
+        {
+            return Result<int>.Failure("You have already submitted a judgment for this submission.");
+        }
+
+        var submissionJudgement = new SubmissionJudgement
+        {
+            SubmissionId = request.SubmissionId,
+            JudgeId = request.JudgeId,
+            CompetitionId = request.CompetitionId,
+            DateJudged = DateTime.UtcNow
+        };
+
+        var criteriaScores = request.Scores.Select(s => new CriteriaScore
+        {
+            SubmissionId = request.SubmissionId,
+            JudgingCriteriaId = s.CriteriaId,
+            Score = s.Score
+        }).ToList();
+
+        try
+        {
+            await _submissionRepository.AddJudgmentWithScoresAsync(submissionJudgement, criteriaScores, cancellationToken);
+            return Result<int>.Success(submissionJudgement.Id);
+        }
+        catch (Exception ex)
+        {
+            // In a real app, you would log this exception
+            return Result<int>.Failure($"An error occurred while submitting the judgment: {ex.Message}");
+        }
+    }
+}
+
+

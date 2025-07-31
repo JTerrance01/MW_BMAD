@@ -97,8 +97,55 @@ namespace MixWarz.Infrastructure.Persistence.Repositories
         public async Task<int> GetSubmissionCountForCompetitionAsync(int competitionId, CancellationToken cancellationToken = default)
         {
             return await _context.Submissions
-                .Where(s => s.CompetitionId == competitionId)
-                .CountAsync(cancellationToken);
+                .CountAsync(s => s.CompetitionId == competitionId, cancellationToken);
+        }
+
+        public async Task AddJudgmentWithScoresAsync(SubmissionJudgment judgment, IEnumerable<CriteriaScore> scores, bool isUpdate, CancellationToken cancellationToken)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                if (isUpdate)
+                {
+                    // For updates, remove existing criteria scores first
+                    var existingScores = await _context.CriteriaScores
+                        .Where(cs => cs.SubmissionJudgmentId == judgment.SubmissionJudgmentId)
+                        .ToListAsync(cancellationToken);
+
+                    _context.CriteriaScores.RemoveRange(existingScores);
+
+                    // Update the existing judgment
+                    _context.SubmissionJudgments.Update(judgment);
+                }
+                else
+                {
+                    // For new judgments, add to context
+                    _context.SubmissionJudgments.Add(judgment);
+                }
+
+                // Save changes to get the judgment ID (for new judgments)
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Assign the SubmissionJudgmentId to each CriteriaScore
+                foreach (var score in scores)
+                {
+                    score.SubmissionJudgmentId = judgment.SubmissionJudgmentId;
+                }
+
+                // Add all the CriteriaScore records
+                await _context.CriteriaScores.AddRangeAsync(scores, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Commit the transaction
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (Exception)
+            {
+                // If anything fails, roll back the transaction and re-throw
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<Submission>> GetByCompetitionIdAndUserIdAsync(int competitionId, string userId)

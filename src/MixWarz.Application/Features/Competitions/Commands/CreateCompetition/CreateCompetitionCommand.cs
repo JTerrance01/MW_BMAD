@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using MixWarz.Domain.Entities;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
+using MixWarz.Application.Common.Interfaces;
 
 namespace MixWarz.Application.Features.Competitions.Commands.CreateCompetition
 {
@@ -131,13 +132,16 @@ namespace MixWarz.Application.Features.Competitions.Commands.CreateCompetition
     {
         private readonly ICompetitionRepository _competitionRepository;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IAppDbContext _context;
 
         public CreateCompetitionCommandHandler(
             ICompetitionRepository competitionRepository,
-            IFileStorageService fileStorageService)
+            IFileStorageService fileStorageService,
+            IAppDbContext context)
         {
             _competitionRepository = competitionRepository;
             _fileStorageService = fileStorageService;
+            _context = context;
         }
 
         public async Task<CreateCompetitionResponse> Handle(CreateCompetitionCommand request, CancellationToken cancellationToken)
@@ -325,6 +329,9 @@ namespace MixWarz.Application.Features.Competitions.Commands.CreateCompetition
                     competitionId = await _competitionRepository.CreateAsync(competition);
                     Console.WriteLine($"Competition created successfully with ID: {competitionId}");
 
+                    // Create default judging criteria for the new competition
+                    await CreateDefaultJudgingCriteriaAsync(competitionId);
+
                     return new CreateCompetitionResponse
                     {
                         Success = true,
@@ -351,6 +358,85 @@ namespace MixWarz.Application.Features.Competitions.Commands.CreateCompetition
                     Message = $"Failed to process competition: {ex.Message}",
                     CompetitionId = 0
                 };
+            }
+        }
+
+        /// <summary>
+        /// Creates default judging criteria for a new competition to ensure it uses the judging workflow
+        /// </summary>
+        /// <param name="competitionId">The ID of the competition to create criteria for</param>
+        private async Task CreateDefaultJudgingCriteriaAsync(int competitionId)
+        {
+            try
+            {
+                Console.WriteLine($"Creating default judging criteria for competition {competitionId}");
+
+                var defaultCriteria = new List<JudgingCriteria>
+                {
+                    new JudgingCriteria
+                    {
+                        CompetitionId = competitionId,
+                        Name = "Technical Clarity",
+                        Description = "Overall mix clarity, frequency balance, technical execution",
+                        ScoringType = ScoringType.Slider,
+                        MinScore = 1,
+                        MaxScore = 10,
+                        Weight = 0.3m,
+                        DisplayOrder = 1,
+                        IsCommentRequired = false
+                    },
+                    new JudgingCriteria
+                    {
+                        CompetitionId = competitionId,
+                        Name = "Creative Balance",
+                        Description = "Creative use of effects, spatial placement, artistic vision",
+                        ScoringType = ScoringType.Slider,
+                        MinScore = 1,
+                        MaxScore = 10,
+                        Weight = 0.25m,
+                        DisplayOrder = 2,
+                        IsCommentRequired = false
+                    },
+                    new JudgingCriteria
+                    {
+                        CompetitionId = competitionId,
+                        Name = "Dynamic Range",
+                        Description = "Use of dynamics, compression, overall punch",
+                        ScoringType = ScoringType.Stars,
+                        MinScore = 1,
+                        MaxScore = 5,
+                        Weight = 0.2m,
+                        DisplayOrder = 3,
+                        IsCommentRequired = false
+                    },
+                    new JudgingCriteria
+                    {
+                        CompetitionId = competitionId,
+                        Name = "Stereo Imaging",
+                        Description = "Width, depth, stereo field utilization",
+                        ScoringType = ScoringType.RadioButtons,
+                        MinScore = 1,
+                        MaxScore = 4,
+                        Weight = 0.25m,
+                        DisplayOrder = 4,
+                        IsCommentRequired = false,
+                        ScoringOptions = "[\"Poor\",\"Fair\",\"Good\",\"Excellent\"]"
+                    }
+                };
+
+                foreach (var criteria in defaultCriteria)
+                {
+                    _context.JudgingCriterias.Add(criteria);
+                }
+
+                await _context.SaveChangesAsync(CancellationToken.None);
+                Console.WriteLine($"Successfully created {defaultCriteria.Count} default judging criteria for competition {competitionId}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating default judging criteria for competition {competitionId}: {ex.Message}");
+                // Don't throw - we don't want to fail the entire competition creation if criteria creation fails
+                // The competition will still work, just with voting workflow instead of judging workflow
             }
         }
     }

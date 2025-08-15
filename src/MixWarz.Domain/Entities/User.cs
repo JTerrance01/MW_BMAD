@@ -17,6 +17,13 @@ namespace MixWarz.Domain.Entities
         // Stripe integration
         public string? StripeCustomerId { get; set; }
 
+        // Hybrid Fair-Play Tournament feature
+        /// <summary>
+        /// Judging prowess score calculated based on how close the judge's scores are to final averages 
+        /// and how many "Helpful" ratings their feedback received
+        /// </summary>
+        public decimal? JudgingProwessScore { get; set; }
+
         // Navigation properties
         public virtual ICollection<UserProfileGalleryImage> GalleryImages { get; set; }
         public virtual ICollection<UserProfileAudioFile> AudioFiles { get; set; }

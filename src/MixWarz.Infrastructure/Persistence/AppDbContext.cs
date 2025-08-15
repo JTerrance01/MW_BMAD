@@ -21,6 +21,10 @@ namespace MixWarz.Infrastructure.Persistence
         public DbSet<SubmissionJudgment> SubmissionJudgments { get; set; }
         public DbSet<CriteriaScore> CriteriaScores { get; set; }
 
+        // Hybrid Fair-Play Tournament DbSets
+        public DbSet<Judgement> Judgements { get; set; }
+        public DbSet<FeedbackRating> FeedbackRatings { get; set; }
+
         // E-commerce module DbSets
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -435,6 +439,44 @@ namespace MixWarz.Infrastructure.Persistence
             // Add index for querying subscriptions by status
             modelBuilder.Entity<Subscription>()
                 .HasIndex(s => s.Status);
+
+            // Configure Hybrid Fair-Play Tournament entities
+            
+            // Configure Judgement entity
+            modelBuilder.Entity<Judgement>()
+                .HasOne(j => j.Submission)
+                .WithMany()
+                .HasForeignKey(j => j.SubmissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Judgement>()
+                .HasOne(j => j.Judge)
+                .WithMany()
+                .HasForeignKey(j => j.JudgeUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Add unique constraint to prevent multiple judgements per judge per submission
+            modelBuilder.Entity<Judgement>()
+                .HasIndex(j => new { j.SubmissionId, j.JudgeUserId })
+                .IsUnique();
+
+            // Configure FeedbackRating entity
+            modelBuilder.Entity<FeedbackRating>()
+                .HasOne(fr => fr.Judgement)
+                .WithMany(j => j.FeedbackRatings)
+                .HasForeignKey(fr => fr.JudgementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FeedbackRating>()
+                .HasOne(fr => fr.Rater)
+                .WithMany()
+                .HasForeignKey(fr => fr.RaterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Add unique constraint to prevent multiple ratings per judgement per rater
+            modelBuilder.Entity<FeedbackRating>()
+                .HasIndex(fr => new { fr.JudgementId, fr.RaterUserId })
+                .IsUnique();
 
             // Seed initial categories
             modelBuilder.Entity<Category>().HasData(

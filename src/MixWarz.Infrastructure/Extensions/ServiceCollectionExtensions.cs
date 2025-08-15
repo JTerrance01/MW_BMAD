@@ -48,6 +48,10 @@ namespace MixWarz.Infrastructure.Extensions
             services.AddScoped<IRound1AssignmentService, Round1AssignmentService>();
             services.AddScoped<IRound2VotingService, Round2VotingService>();
 
+            // Hybrid Fair-Play Tournament Services
+            services.AddScoped<ISubmissionAssignmentService, SubmissionAssignmentService>();
+            services.AddScoped<IJudgingService, JudgingService>();
+
             return services;
         }
 

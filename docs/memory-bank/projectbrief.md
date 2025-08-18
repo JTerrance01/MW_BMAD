@@ -14,20 +14,20 @@ MixWarz
 
 ## Goals
 
-- [ ] Launch a functional platform that allows users to participate in mixing competitions
-- [ ] Enable users to purchase digital music production goods
-- [ ] Establish a system that supports Admin, User, and Organizer roles
-- [ ] Validate the core value proposition of combining skill-based competition with e-commerce
+- [x] Launch a functional platform that allows users to participate in mixing competitions
+- [x] Enable users to purchase digital music production goods
+- [x] Establish a system that supports Admin, User, and Organizer roles
+- [x] Validate the core value proposition of combining skill-based competition with e-commerce
 - [ ] Gather user feedback to inform future development phases
 
 ## Scope
 
-- [ ] User registration and authentication (JWT-based)
-- [ ] Competition creation, submission, and judging process
-- [ ] E-commerce functionality for digital goods (catalog, cart, checkout)
-- [ ] Admin interface for user, competition, and product management
-- [ ] Integration with payment gateway (Stripe)
-- [ ] AWS-based infrastructure and hosting
+- [x] User registration and authentication (JWT-based)
+- [x] Competition creation, submission, and judging process
+- [x] E-commerce functionality for digital goods (catalog, cart, checkout)
+- [x] Admin interface for user, competition, and product management
+- [x] Integration with payment gateway (Stripe)
+- [x] AWS-based infrastructure and hosting
 
 ## Notes
 

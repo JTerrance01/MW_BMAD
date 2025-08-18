@@ -71,8 +71,6 @@ builder.Services.AddIdentity<User, Role>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICompetitionRepository, CompetitionRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
-builder.Services.AddScoped<ISubmissionVoteRepository, SubmissionVoteRepository>();
-builder.Services.AddScoped<IRound1AssignmentRepository, Round1AssignmentRepository>();
 builder.Services.AddScoped<ISubmissionGroupRepository, SubmissionGroupRepository>();
 
 // Add e-commerce repositories
@@ -86,12 +84,6 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Register Stripe service
 builder.Services.AddScoped<IStripeService, StripeService>();
-
-// Register Round1AssignmentService for competition voting
-builder.Services.AddScoped<IRound1AssignmentService, Round1AssignmentService>();
-
-// Register Round2VotingService for final round voting
-builder.Services.AddScoped<IRound2VotingService, Round2VotingService>();
 
 // Register SongCreatorPickRepository for Song Creator picks
 builder.Services.AddScoped<ISongCreatorPickRepository, SongCreatorPickRepository>();
@@ -312,4 +304,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.MapControllers();
 
 app.Run();
+
+// Make Program class accessible for testing
+public partial class Program { }
 

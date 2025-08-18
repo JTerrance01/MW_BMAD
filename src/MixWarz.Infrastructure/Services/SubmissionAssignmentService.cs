@@ -46,10 +46,10 @@ namespace MixWarz.Infrastructure.Services
                     throw new ArgumentException($"Competition with ID {competitionId} not found", nameof(competitionId));
                 }
 
-                // Get all active submissions for this competition
+                // Get all active submissions for this competition (both Submitted and AwaitingJudging)
                 var activeSubmissions = await _context.Submissions
                     .Where(s => s.CompetitionId == competitionId &&
-                               s.Status == SubmissionStatus.Submitted)
+                               (s.Status == SubmissionStatus.Submitted || s.Status == SubmissionStatus.AwaitingJudging))
                     .Include(s => s.User)
                     .ToListAsync();
 
@@ -125,13 +125,19 @@ namespace MixWarz.Infrastructure.Services
                     }
                 }
 
-                // Update competition status to Judging
-                competition.Status = CompetitionStatus.InJudging;
+                // Update competition status to Judging (if not already)
+                if (competition.Status != CompetitionStatus.InJudging)
+                {
+                    competition.Status = CompetitionStatus.InJudging;
+                }
 
-                // Update submission statuses to AwaitingJudging
+                // Update submission statuses to AwaitingJudging (if not already)
                 foreach (var submission in activeSubmissions)
                 {
-                    submission.Status = SubmissionStatus.AwaitingJudging;
+                    if (submission.Status == SubmissionStatus.Submitted)
+                    {
+                        submission.Status = SubmissionStatus.AwaitingJudging;
+                    }
                 }
 
                 // Save all changes

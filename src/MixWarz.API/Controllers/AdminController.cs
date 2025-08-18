@@ -22,7 +22,7 @@ using System.Security.Claims;
 using MixWarz.Application.Features.Admin.Commands.UpdateOrderStatus;
 using MixWarz.Application.Features.Admin.Commands.UpdateCompetition;
 using MixWarz.Domain.Interfaces;
-using MixWarz.Application.Features.Admin.Commands.GenerateMissingCriteriaScores;
+
 
 namespace MixWarz.API.Controllers
 {
@@ -848,51 +848,8 @@ namespace MixWarz.API.Controllers
             }
         }
 
-        // POST api/v1/admin/competitions/{competitionId}/transition-to-round1
-        [HttpPost("competitions/{competitionId}/transition-to-round1")]
-        public async Task<ActionResult<TransitionCompetitionToRound1SetupCommandResponse>> TransitionCompetitionToRound1Setup(
-            int competitionId)
-        {
-            var command = new TransitionCompetitionToRound1SetupCommand(competitionId);
-            var result = await _mediator.Send(command);
 
-            if (!result.Success)
-            {
-                return BadRequest(result);
-            }
 
-            return Ok(result);
-        }
 
-        /// <summary>
-        /// Generate missing criteria scores for competitions that have judgments but no detailed criteria scores
-        /// POST api/v1/admin/generate-missing-criteria-scores
-        /// </summary>
-        [HttpPost("generate-missing-criteria-scores")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<GenerateMissingCriteriaScoresResponse>> GenerateMissingCriteriaScores(
-            [FromBody] GenerateMissingCriteriaScoresCommand command)
-        {
-            try
-            {
-                var result = await _mediator.Send(command);
-
-                if (!result.Success)
-                {
-                    return BadRequest(result);
-                }
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating missing criteria scores");
-                return StatusCode(500, new GenerateMissingCriteriaScoresResponse
-                {
-                    Success = false,
-                    Message = $"Internal server error: {ex.Message}"
-                });
-            }
-        }
     }
 }

@@ -20,6 +20,7 @@ import CompetitionTimeline from "../../components/competitions/CompetitionTimeli
 import VotingRound1Card from "../../components/competitions/VotingRound1Card";
 import VotingRound2Card from "../../components/competitions/VotingRound2Card";
 import JudgingInterface from "../../components/competitions/JudgingInterface";
+import hybridTournamentService from "../../services/hybridTournamentService";
 import MultitrackDownloadSection from "../../components/competitions/MultitrackDownloadSection";
 import SubmissionUploadForm from "../../components/competitions/SubmissionUploadForm";
 import UserSubmissionCard from "../../components/competitions/UserSubmissionCard";
@@ -162,40 +163,22 @@ const CompetitionDetailPage = () => {
   const [useJudgingInterface, setUseJudgingInterface] = useState(true); // Toggle between judging and voting interface
   const [selectedSubmissionForJudging, setSelectedSubmissionForJudging] = useState(null); // Track which submission to judge
   
-  // Real handler for judgment submission (replaces mock implementation)
+  // MIGRATED: Handler for judgment submission using Hybrid Fair-Play Tournament system
   const handleJudgmentSubmit = async (judgmentData) => {
-    console.log("Submitting judgment:", judgmentData);
+    console.log("🔄 [Migration] Submitting judgment via Hybrid Fair-Play Tournament system:", judgmentData);
     
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      const response = await fetch(`/api/competitions/${judgmentData.competitionId}/voting/judgments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          submissionId: judgmentData.submissionId,
-          overallScore: judgmentData.overallScore,
-          overallComments: judgmentData.overallComments,
-          criteriaScores: judgmentData.criteriaScores,
-          votingRound: 1 // Default to Round 1
-        })
+      // Use new hybrid tournament service instead of old voting system
+      const result = await hybridTournamentService.submitJudgement(judgmentData.submissionId, {
+        judgeUserId: localStorage.getItem('userId'), // Get user ID from storage
+        score: judgmentData.overallScore,
+        feedback: judgmentData.overallComments || "No feedback provided",
+        criteriaScores: judgmentData.criteriaScores // Include criteria scores if needed
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Judgment submitted successfully:", result);
+      console.log("✅ [Migration] Judgment submitted successfully via new system:", result);
       
-      // Refresh voting assignments to update hasVotedRound1 status
+      // Refresh voting assignments to update status (maintained for compatibility)
       if (id) {
         console.log("Refreshing voting assignments after judgment submission");
         dispatch(fetchRound1VotingAssignments(id));
@@ -203,11 +186,11 @@ const CompetitionDetailPage = () => {
       
       return { 
         success: true, 
-        message: result.message,
-        isUpdate: result.isUpdate 
+        message: result.message || "Judgment submitted successfully with new Hybrid Fair-Play Tournament system",
+        isUpdate: false // New system doesn't have update concept
       };
     } catch (error) {
-      console.error("Error submitting judgment:", error);
+      console.error("❌ [Migration] Error submitting judgment:", error);
       throw error;
     }
   };
@@ -964,12 +947,13 @@ const CompetitionDetailPage = () => {
               }}
             >
               <Alert.Heading style={{ color: "var(--accent-primary)" }}>
-                Votes are being tallied!
+                Results are being calculated!
               </Alert.Heading>
               <p style={{ color: "var(--text-primary)" }}>
-                The voting phase has ended, and we're now calculating the
-                results. Please check back soon for the next phase of the
-                competition.
+                The judging phase has ended, and we're now calculating the
+                results using the Hybrid Fair-Play Tournament system. This includes
+                judging prowess calculations and comprehensive scoring analysis.
+                Please check back soon for the final results.
               </p>
             </Alert>
           )}
@@ -994,7 +978,7 @@ const CompetitionDetailPage = () => {
                         ✅ Judging Complete
                       </h5>
                       <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
-                        Thank you for completing your judging! Your scores and feedback have been submitted.
+                        Thank you for completing your judging! Your scores and feedback have been submitted using the Hybrid Fair-Play Tournament system.
                       </p>
                       <div 
                         className="px-4 py-2 rounded"
@@ -1005,7 +989,7 @@ const CompetitionDetailPage = () => {
                         }}
                       >
                         <small>
-                          <strong>What's Next:</strong> Wait for all judging to complete, then Round 2 voting will begin.
+                          <strong>What's Next:</strong> Your judging prowess will be calculated based on score accuracy and feedback quality. Results will be announced when all judging is complete.
                         </small>
                       </div>
                     </>
@@ -1015,7 +999,7 @@ const CompetitionDetailPage = () => {
                         🎯 Judge Submissions
                       </h5>
                       <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
-                        Listen to anonymous submissions and provide detailed scoring and feedback
+                        Listen to assigned submissions and provide detailed scoring and feedback using the Hybrid Fair-Play Tournament system
                       </p>
                       <Button
                         variant="primary"
@@ -1132,6 +1116,17 @@ const CompetitionDetailPage = () => {
             </Card.Header>{" "}
             <Card.Body>
               {" "}
+              <div className="mb-3 p-3 rounded" style={{
+                backgroundColor: "var(--bg-tertiary)",
+                borderLeft: "4px solid var(--accent-primary)"
+              }}>
+                <small style={{ color: "var(--accent-primary)", fontWeight: "600" }}>
+                  🆕 HYBRID FAIR-PLAY TOURNAMENT SYSTEM
+                </small>
+                <p className="mb-0 mt-1" style={{ color: "var(--text-secondary)", fontSize: "0.9em" }}>
+                  This competition uses our advanced judging system with feedback ratings and prowess tracking.
+                </p>
+              </div>
               <ol className="ps-3" style={{ color: "var(--text-primary)" }}>
                 {" "}
                 <li className="mb-3">
@@ -1144,32 +1139,30 @@ const CompetitionDetailPage = () => {
                 <li className="mb-3">
                   {" "}
                   <strong style={{ color: "var(--accent-primary)" }}>
-                    Round 1 Voting:
+                    Universal Judging:
                   </strong>{" "}
-                  Participants are assigned to voting groups and vote for their
-                  favorite mixes{" "}
+                  All participants judge assigned submissions with detailed scores and feedback{" "}
                 </li>{" "}
                 <li className="mb-3">
                   {" "}
                   <strong style={{ color: "var(--accent-primary)" }}>
-                    Advancement:
+                    Feedback Rating:
                   </strong>{" "}
-                  Top-rated mixes from each group advance to Round 2{" "}
+                  Rate the helpfulness of feedback you receive to improve the judging system{" "}
                 </li>{" "}
                 <li className="mb-3">
                   {" "}
                   <strong style={{ color: "var(--accent-primary)" }}>
-                    Round 2 Voting:
+                    Judging Prowess:
                   </strong>{" "}
-                  All participants who didn't advance can vote on the finalists.
-                  Participants must participate in Round 1 voting to advance to Round 2 Voting{" "}
+                  Your judging accuracy and feedback quality contribute to your prowess score{" "}
                 </li>{" "}
                 <li>
                   {" "}
                   <strong style={{ color: "var(--accent-primary)" }}>
-                    Winner Selection:
+                    Fair Results:
                   </strong>{" "}
-                  The mix with the most points wins!{" "}
+                  Winners determined by comprehensive scoring that accounts for judging quality{" "}
                 </li>{" "}
               </ol>{" "}
             </Card.Body>{" "}

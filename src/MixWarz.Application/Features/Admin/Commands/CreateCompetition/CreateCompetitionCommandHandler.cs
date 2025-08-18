@@ -213,8 +213,8 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
                     competitionId = await _competitionRepository.CreateAsync(competition);
                     _logger.LogInformation($"Competition created successfully with ID: {competitionId}");
 
-                    // Create default judging criteria for the new competition
-                    await CreateDefaultJudgingCriteriaAsync(competitionId);
+                    // Note: Hybrid Fair-Play Tournament system doesn't use detailed criteria
+                    // Simple score + feedback model is used instead
 
                     return new CreateCompetitionResponse
                     {
@@ -239,85 +239,7 @@ namespace MixWarz.Application.Features.Admin.Commands.CreateCompetition
             }
         }
 
-        /// <summary>
-        /// Creates default judging criteria for a new competition to ensure it uses the judging workflow
-        /// </summary>
-        /// <param name="competitionId">The ID of the competition to create criteria for</param>
-        private async Task CreateDefaultJudgingCriteriaAsync(int competitionId)
-        {
-            try
-            {
-                _logger.LogInformation("Creating default judging criteria for competition {CompetitionId}", competitionId);
 
-                var defaultCriteria = new List<JudgingCriteria>
-                {
-                    new JudgingCriteria
-                    {
-                        CompetitionId = competitionId,
-                        Name = "Technical Clarity",
-                        Description = "Overall mix clarity, frequency balance, technical execution",
-                        ScoringType = ScoringType.Slider,
-                        MinScore = 1,
-                        MaxScore = 10,
-                        Weight = 0.3m,
-                        DisplayOrder = 1,
-                        IsCommentRequired = false
-                    },
-                    new JudgingCriteria
-                    {
-                        CompetitionId = competitionId,
-                        Name = "Creative Balance",
-                        Description = "Creative use of effects, spatial placement, artistic vision",
-                        ScoringType = ScoringType.Slider,
-                        MinScore = 1,
-                        MaxScore = 10,
-                        Weight = 0.25m,
-                        DisplayOrder = 2,
-                        IsCommentRequired = false
-                    },
-                    new JudgingCriteria
-                    {
-                        CompetitionId = competitionId,
-                        Name = "Dynamic Range",
-                        Description = "Use of dynamics, compression, overall punch",
-                        ScoringType = ScoringType.Stars,
-                        MinScore = 1,
-                        MaxScore = 5,
-                        Weight = 0.2m,
-                        DisplayOrder = 3,
-                        IsCommentRequired = false
-                    },
-                    new JudgingCriteria
-                    {
-                        CompetitionId = competitionId,
-                        Name = "Stereo Imaging",
-                        Description = "Width, depth, stereo field utilization",
-                        ScoringType = ScoringType.RadioButtons,
-                        MinScore = 1,
-                        MaxScore = 4,
-                        Weight = 0.25m,
-                        DisplayOrder = 4,
-                        IsCommentRequired = false,
-                        ScoringOptions = "[\"Poor\",\"Fair\",\"Good\",\"Excellent\"]"
-                    }
-                };
-
-                foreach (var criteria in defaultCriteria)
-                {
-                    _context.JudgingCriterias.Add(criteria);
-                }
-
-                await _context.SaveChangesAsync(CancellationToken.None);
-                _logger.LogInformation("Successfully created {Count} default judging criteria for competition {CompetitionId}",
-                    defaultCriteria.Count, competitionId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating default judging criteria for competition {CompetitionId}", competitionId);
-                // Don't throw - we don't want to fail the entire competition creation if criteria creation fails
-                // The competition will still work, just with voting workflow instead of judging workflow
-            }
-        }
 
         /// <summary>
         /// Ensures the URL is absolute format for database storage.

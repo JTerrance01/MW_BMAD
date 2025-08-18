@@ -25,15 +25,11 @@ namespace MixWarz.Application.Common.Interfaces
         // Competition entities
         DbSet<Competition> Competitions { get; set; }
         DbSet<Submission> Submissions { get; set; }
-        DbSet<SubmissionVote> SubmissionVotes { get; set; }
-        DbSet<Round1Assignment> Round1Assignments { get; set; }
+
         DbSet<SubmissionGroup> SubmissionGroups { get; set; }
         DbSet<SongCreatorPick> SongCreatorPicks { get; set; }
 
-        // Judging System entities
-        DbSet<JudgingCriteria> JudgingCriterias { get; set; }
-        DbSet<SubmissionJudgment> SubmissionJudgments { get; set; }
-        DbSet<CriteriaScore> CriteriaScores { get; set; }
+
 
         // Hybrid Fair-Play Tournament entities
         DbSet<Judgement> Judgements { get; set; }

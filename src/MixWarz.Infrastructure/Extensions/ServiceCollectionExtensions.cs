@@ -29,8 +29,7 @@ namespace MixWarz.Infrastructure.Extensions
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ICompetitionRepository, CompetitionRepository>();
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();
-            services.AddScoped<ISubmissionVoteRepository, SubmissionVoteRepository>();
-            services.AddScoped<IRound1AssignmentRepository, Round1AssignmentRepository>();
+
             services.AddScoped<ISubmissionGroupRepository, SubmissionGroupRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
@@ -45,12 +44,13 @@ namespace MixWarz.Infrastructure.Extensions
             services.AddHttpContextAccessor();
 
             services.AddScoped<IStripeService, StripeService>();
-            services.AddScoped<IRound1AssignmentService, Round1AssignmentService>();
-            services.AddScoped<IRound2VotingService, Round2VotingService>();
+
 
             // Hybrid Fair-Play Tournament Services
             services.AddScoped<ISubmissionAssignmentService, SubmissionAssignmentService>();
+            services.AddScoped<ITournamentLifecycleService, TournamentLifecycleService>();
             services.AddScoped<IJudgingService, JudgingService>();
+            services.AddScoped<IJudgingProwessCalculator, JudgingProwessCalculator>();
 
             return services;
         }
@@ -99,10 +99,6 @@ namespace MixWarz.Infrastructure.Extensions
             });
 
             // Register job implementations as transient services
-            services.AddTransient<TransitionSubmissionToRound1Job>();
-            services.AddTransient<TransitionRound1SetupToOpenJob>();
-            services.AddTransient<TransitionRound1VotingToTallyingJob>();
-            services.AddTransient<TransitionRound2VotingToTallyingJob>();
             services.AddTransient<CreateMonthlyCompetitionsJob>();
 
             return services;

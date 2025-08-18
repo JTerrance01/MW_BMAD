@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MixWarz.Application.Common.Interfaces;
 using MixWarz.Domain.Entities;
 using MixWarz.Domain.Enums;
 using MixWarz.Domain.Interfaces;
@@ -14,26 +15,23 @@ namespace MixWarz.API.Controllers
     {
         private readonly ICompetitionRepository _competitionRepository;
         private readonly ISubmissionRepository _submissionRepository;
-        private readonly IRound1AssignmentService _round1AssignmentService;
-        private readonly IRound2VotingService _round2VotingService;
+        private readonly ITournamentLifecycleService _tournamentLifecycleService;
 
         public AdminCompetitionMonitoringController(
             ICompetitionRepository competitionRepository,
             ISubmissionRepository submissionRepository,
-            IRound1AssignmentService round1AssignmentService,
-            IRound2VotingService round2VotingService)
+            ITournamentLifecycleService tournamentLifecycleService)
         {
             _competitionRepository = competitionRepository;
             _submissionRepository = submissionRepository;
-            _round1AssignmentService = round1AssignmentService;
-            _round2VotingService = round2VotingService;
+            _tournamentLifecycleService = tournamentLifecycleService;
         }
 
         /// <summary>
-        /// Gets the voting progress for a competition in Round 1
+        /// Gets the judging progress for a competition using Hybrid Fair-Play Tournament system
         /// </summary>
-        [HttpGet("round1-progress/{competitionId}")]
-        public async Task<IActionResult> GetRound1VotingProgress(int competitionId)
+        [HttpGet("judging-progress/{competitionId}")]
+        public async Task<IActionResult> GetJudgingProgress(int competitionId)
         {
             var competition = await _competitionRepository.GetByIdAsync(competitionId);
             if (competition == null)
@@ -41,20 +39,12 @@ namespace MixWarz.API.Controllers
                 return NotFound("Competition not found");
             }
 
-            if (competition.Status != CompetitionStatus.VotingRound1Open &&
-                competition.Status != CompetitionStatus.VotingRound1Tallying)
+            if (competition.Status != CompetitionStatus.InJudging)
             {
-                return BadRequest("Competition is not in Round 1 voting phase");
+                return BadRequest("Competition is not in judging phase");
             }
 
-            // TODO: Implement proper voting group retrieval
-            var votingGroups = new List<object>(); // Placeholder for voting groups
-
-            // TODO: Implement proper voting statistics
-            int totalVoters = 0; // Placeholder
-            int votesSubmitted = 0; // Placeholder
-            double votingProgress = totalVoters > 0 ? (double)votesSubmitted / (totalVoters * 3) : 0;
-
+            // Note: In Hybrid Fair-Play Tournament, there are no voting groups - individual judging assignments
             // Get preliminary standings 
             var allSubmissions = await _submissionRepository.GetByCompetitionIdAsync(competitionId);
             var preliminaryRankings = allSubmissions
@@ -64,10 +54,10 @@ namespace MixWarz.API.Controllers
                     SubmissionId = s.SubmissionId,
                     Title = s.MixTitle,
                     SubmitterId = s.UserId,
-                    Round1Score = s.Round1Score,
-                    AdvancedToRound2 = s.AdvancedToRound2
+                    Status = s.Status.ToString(),
+                    JudgingComplete = false // TODO: Calculate from Judgements table
                 })
-                .OrderByDescending(s => s.Round1Score)
+                .OrderBy(s => s.Title)
                 .ToList();
 
             return Ok(new
@@ -75,69 +65,21 @@ namespace MixWarz.API.Controllers
                 CompetitionId = competitionId,
                 CompetitionTitle = competition.Title,
                 Status = competition.Status.ToString(),
-                EligibleVoters = totalVoters,
-                VotesSubmitted = votesSubmitted,
-                VotingProgressPercentage = Math.Round(votingProgress * 100, 2),
-                VotingGroupsCount = votingGroups.Count,
-                VotingGroups = votingGroups,
+                System = "Hybrid Fair-Play Tournament",
+                TotalSubmissions = allSubmissions.Count(s => !s.IsDisqualified),
                 PreliminaryRankings = preliminaryRankings
             });
         }
 
         /// <summary>
-        /// Gets the voting progress for a competition in Round 2
+        /// Note: Round 2 voting removed with Hybrid Fair-Play Tournament system
+        /// This endpoint is deprecated and will be removed in future versions
         /// </summary>
         [HttpGet("round2-progress/{competitionId}")]
+        [Obsolete("Round-based voting has been replaced by Hybrid Fair-Play Tournament system")]
         public async Task<IActionResult> GetRound2VotingProgress(int competitionId)
         {
-            var competition = await _competitionRepository.GetByIdAsync(competitionId);
-            if (competition == null)
-            {
-                return NotFound("Competition not found");
-            }
-
-            if (competition.Status != CompetitionStatus.VotingRound2Open &&
-                competition.Status != CompetitionStatus.VotingRound2Tallying)
-            {
-                return BadRequest("Competition is not in Round 2 voting phase");
-            }
-
-            // Get Round 2 submissions
-            var eligibleSubmissions = await _round2VotingService.GetRound2SubmissionsAsync(competitionId);
-
-            // TODO: Implement proper voting statistics
-            int eligibleVoters = 0; // Placeholder
-            int votesSubmitted = 0; // Placeholder
-            double votingProgress = eligibleVoters > 0 ? (double)votesSubmitted / (eligibleVoters * 3) : 0;
-
-            // Get preliminary standings
-            var preliminaryRankings = eligibleSubmissions
-                .Select(s => new
-                {
-                    SubmissionId = s.SubmissionId,
-                    Title = s.MixTitle,
-                    SubmitterId = s.UserId,
-                    Round2Score = s.Round2Score,
-                    FinalScore = s.FinalScore
-                })
-                .OrderByDescending(s => s.Round2Score)
-                .ToList();
-
-            // TODO: Check if song creator has submitted picks
-            bool creatorPicks = false; // Placeholder
-
-            return Ok(new
-            {
-                CompetitionId = competitionId,
-                CompetitionTitle = competition.Title,
-                Status = competition.Status.ToString(),
-                EligibleSubmissions = eligibleSubmissions.Count(),
-                EligibleVoters = eligibleVoters,
-                VotesSubmitted = votesSubmitted,
-                VotingProgressPercentage = Math.Round(votingProgress * 100, 2),
-                PreliminaryRankings = preliminaryRankings,
-                SongCreatorPicksSubmitted = creatorPicks
-            });
+            return BadRequest("Round 2 voting has been replaced by the Hybrid Fair-Play Tournament system. Use /judging-progress/{competitionId} instead.");
         }
 
         /// <summary>
@@ -169,7 +111,7 @@ namespace MixWarz.API.Controllers
         }
 
         /// <summary>
-        /// Manually advances a competition to the next phase (for administrative control)
+        /// Manually advances a competition to the next phase using Hybrid Fair-Play Tournament system
         /// </summary>
         [HttpPost("advance-status/{competitionId}")]
         public async Task<IActionResult> AdvanceCompetitionStatus(int competitionId)
@@ -181,74 +123,58 @@ namespace MixWarz.API.Controllers
             }
 
             CompetitionStatus newStatus;
+            string actionTaken = "";
 
-            // Determine the next status based on current status
-            switch (competition.Status)
+            try
             {
-                case CompetitionStatus.Upcoming:
-                    newStatus = CompetitionStatus.OpenForSubmissions;
-                    break;
-                case CompetitionStatus.OpenForSubmissions:
-                    newStatus = CompetitionStatus.VotingRound1Setup;
-                    await _round1AssignmentService.CreateGroupsAndAssignVotersAsync(competitionId);
-                    break;
-                case CompetitionStatus.VotingRound1Setup:
-                    newStatus = CompetitionStatus.VotingRound1Open;
-                    break;
-                case CompetitionStatus.VotingRound1Open:
-                    newStatus = CompetitionStatus.VotingRound1Tallying;
-                    await _round1AssignmentService.DisqualifyNonVotersAsync(competitionId);
-                    await _round1AssignmentService.TallyVotesAndDetermineAdvancementAsync(competitionId);
-                    break;
-                case CompetitionStatus.VotingRound1Tallying:
-                    newStatus = CompetitionStatus.VotingRound2Setup;
-                    break;
-                case CompetitionStatus.VotingRound2Setup:
-                    newStatus = CompetitionStatus.VotingRound2Open;
-                    break;
-                case CompetitionStatus.VotingRound2Open:
-                    newStatus = CompetitionStatus.VotingRound2Tallying;
-                    var (winnerId, isTie) = await _round2VotingService.TallyRound2VotesAsync(competitionId);
-                    if (isTie)
-                    {
-                        newStatus = CompetitionStatus.RequiresManualWinnerSelection;
-                    }
-                    else if (winnerId > 0)
-                    {
-                        await _round2VotingService.SetCompetitionWinnerAsync(competitionId, winnerId);
+                // Determine the next status based on current status (Hybrid Fair-Play Tournament)
+                switch (competition.Status)
+                {
+                    case CompetitionStatus.Upcoming:
+                        newStatus = CompetitionStatus.OpenForSubmissions;
+                        actionTaken = "Opened for submissions";
+                        break;
+                    case CompetitionStatus.OpenForSubmissions:
+                        newStatus = CompetitionStatus.InJudging;
+                        await _tournamentLifecycleService.StartUniversalJudging(competitionId);
+                        actionTaken = "Started judging phase with Hybrid Fair-Play Tournament system";
+                        break;
+                    case CompetitionStatus.InJudging:
+                        var advancedSubmissionIds = await _tournamentLifecycleService.TallyUniversalJudgingResults(competitionId, 10); // Default advancement count
                         newStatus = CompetitionStatus.Completed;
-                    }
-                    break;
-                case CompetitionStatus.RequiresManualWinnerSelection:
-                    // Can't automatically advance from this state
-                    return BadRequest("Manual winner selection required before advancing");
-                default:
-                    return BadRequest("Cannot advance from current competition status");
+                        actionTaken = $"Completed judging and advanced {advancedSubmissionIds.Count()} submissions. Judging prowess calculated.";
+                        break;
+                    default:
+                        return BadRequest($"Cannot advance from current status: {competition.Status}. Use Hybrid Fair-Play Tournament endpoints.");
+                }
+
+                // Update the competition status (this is handled by the lifecycle service)
+                return Ok(new
+                {
+                    PreviousStatus = competition.Status.ToString(),
+                    NewStatus = newStatus.ToString(),
+                    ActionTaken = actionTaken,
+                    System = "Hybrid Fair-Play Tournament"
+                });
             }
-
-            // Update the competition status
-            await _competitionRepository.UpdateCompetitionStatusAsync(competitionId, newStatus);
-
-            return Ok(new
+            catch (Exception ex)
             {
-                PreviousStatus = competition.Status.ToString(),
-                NewStatus = newStatus.ToString()
-            });
+                return BadRequest($"Error advancing competition: {ex.Message}");
+            }
         }
 
         /// <summary>
-        /// Gets a dashboard summary of all active competitions
+        /// Gets a dashboard summary of all active competitions using Hybrid Fair-Play Tournament system
         /// </summary>
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetCompetitionsDashboard()
         {
-            // Get counts of competitions by status
+            // Get counts of competitions by status (Hybrid Fair-Play Tournament)
             var upcomingCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.Upcoming);
             var openForSubmissionsCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.OpenForSubmissions);
-            var inRound1VotingCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.VotingRound1Open);
-            var inRound2VotingCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.VotingRound2Open);
-            var requiresManualSelectionCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.RequiresManualWinnerSelection);
+            var inJudgingCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.InJudging);
             var completedCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.Completed);
+            var closedCount = await _competitionRepository.GetCountByStatusAsync(CompetitionStatus.Closed);
 
             // Get competitions that need attention (upcoming or approaching deadlines)
             var now = DateTime.UtcNow;
@@ -260,12 +186,8 @@ namespace MixWarz.API.Controllers
                     (c.Status == CompetitionStatus.Upcoming && c.StartDate <= now.AddDays(1)) ||
                     // Competitions near submission deadlines
                     (c.Status == CompetitionStatus.OpenForSubmissions && c.EndDate <= now.AddDays(1)) ||
-                    // Competitions in Round 1 that require tallying soon
-                    (c.Status == CompetitionStatus.VotingRound1Open) ||
-                    // Competitions in Round 2 that require tallying soon
-                    (c.Status == CompetitionStatus.VotingRound2Open) ||
-                    // Competitions requiring manual decision
-                    c.Status == CompetitionStatus.RequiresManualWinnerSelection)
+                    // Competitions in judging phase
+                    (c.Status == CompetitionStatus.InJudging))
                 .Select(c => new
                 {
                     CompetitionId = c.CompetitionId,
@@ -281,12 +203,12 @@ namespace MixWarz.API.Controllers
                 {
                     Upcoming = upcomingCount,
                     OpenForSubmissions = openForSubmissionsCount,
-                    InRound1Voting = inRound1VotingCount,
-                    InRound2Voting = inRound2VotingCount,
-                    RequiresManualSelection = requiresManualSelectionCount,
-                    Completed = completedCount
+                    InJudging = inJudgingCount,
+                    Completed = completedCount,
+                    Closed = closedCount
                 },
-                NeedsAttention = needingAttention
+                NeedsAttention = needingAttention,
+                System = "Hybrid Fair-Play Tournament"
             });
         }
 
@@ -299,14 +221,8 @@ namespace MixWarz.API.Controllers
             if (competition.Status == CompetitionStatus.OpenForSubmissions && competition.EndDate <= now.AddDays(1))
                 return "Submission deadline within 24 hours";
 
-            if (competition.Status == CompetitionStatus.VotingRound1Open)
-                return "Round 1 voting in progress";
-
-            if (competition.Status == CompetitionStatus.VotingRound2Open)
-                return "Round 2 voting in progress";
-
-            if (competition.Status == CompetitionStatus.RequiresManualWinnerSelection)
-                return "Requires manual winner selection";
+            if (competition.Status == CompetitionStatus.InJudging)
+                return "Judging phase in progress (Hybrid Fair-Play Tournament)";
 
             return "Needs attention";
         }

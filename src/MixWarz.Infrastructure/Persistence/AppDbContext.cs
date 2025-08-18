@@ -11,15 +11,11 @@ namespace MixWarz.Infrastructure.Persistence
     {
         public DbSet<Competition> Competitions { get; set; }
         public DbSet<Submission> Submissions { get; set; }
-        public DbSet<SubmissionVote> SubmissionVotes { get; set; }
-        public DbSet<Round1Assignment> Round1Assignments { get; set; }
+
         public DbSet<SubmissionGroup> SubmissionGroups { get; set; }
         public DbSet<SongCreatorPick> SongCreatorPicks { get; set; }
 
-        // Judging System DbSets
-        public DbSet<JudgingCriteria> JudgingCriterias { get; set; }
-        public DbSet<SubmissionJudgment> SubmissionJudgments { get; set; }
-        public DbSet<CriteriaScore> CriteriaScores { get; set; }
+
 
         // Hybrid Fair-Play Tournament DbSets
         public DbSet<Judgement> Judgements { get; set; }
@@ -84,54 +80,9 @@ namespace MixWarz.Infrastructure.Persistence
                 .HasIndex(s => new { s.CompetitionId, s.UserId })
                 .IsUnique();
 
-            // Configure SubmissionVote entity
-            modelBuilder.Entity<SubmissionVote>()
-                .HasOne(sv => sv.Submission)
-                .WithMany(s => s.Votes)
-                .HasForeignKey(sv => sv.SubmissionId)
-                .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<SubmissionVote>()
-                .HasOne(sv => sv.Voter)
-                .WithMany()
-                .HasForeignKey(sv => sv.VoterId)
-                .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<SubmissionVote>()
-                .HasOne(sv => sv.Competition)
-                .WithMany()
-                .HasForeignKey(sv => sv.CompetitionId)
-                .OnDelete(DeleteBehavior.Restrict);
 
-            // Add index for querying votes by competition and round
-            modelBuilder.Entity<SubmissionVote>()
-                .HasIndex(sv => new { sv.CompetitionId, sv.VotingRound });
-
-            // Add index for querying voter's votes in a competition
-            modelBuilder.Entity<SubmissionVote>()
-                .HasIndex(sv => new { sv.CompetitionId, sv.VoterId, sv.VotingRound });
-
-            // Configure Round1Assignment entity
-            modelBuilder.Entity<Round1Assignment>()
-                .HasOne(ra => ra.Competition)
-                .WithMany()
-                .HasForeignKey(ra => ra.CompetitionId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Round1Assignment>()
-                .HasOne(ra => ra.Voter)
-                .WithMany()
-                .HasForeignKey(ra => ra.VoterId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Add index for querying assignments by competition and voter
-            modelBuilder.Entity<Round1Assignment>()
-                .HasIndex(ra => new { ra.CompetitionId, ra.VoterId })
-                .IsUnique();
-
-            // Add index for querying assignments by competition and assigned group
-            modelBuilder.Entity<Round1Assignment>()
-                .HasIndex(ra => new { ra.CompetitionId, ra.AssignedGroupNumber });
 
             // Configure SubmissionGroup entity
             modelBuilder.Entity<SubmissionGroup>()
@@ -365,64 +316,7 @@ namespace MixWarz.Infrastructure.Persistence
                 .HasIndex(scp => new { scp.CompetitionId, scp.Rank })
                 .IsUnique();
 
-            // Configure Judging System entities
 
-            // JudgingCriteria
-            modelBuilder.Entity<JudgingCriteria>()
-                .HasOne(jc => jc.Competition)
-                .WithMany()
-                .HasForeignKey(jc => jc.CompetitionId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Add index for querying criteria by competition and display order
-            modelBuilder.Entity<JudgingCriteria>()
-                .HasIndex(jc => new { jc.CompetitionId, jc.DisplayOrder });
-
-            // SubmissionJudgment
-            modelBuilder.Entity<SubmissionJudgment>()
-                .HasOne(sj => sj.Submission)
-                .WithMany()
-                .HasForeignKey(sj => sj.SubmissionId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<SubmissionJudgment>()
-                .HasOne(sj => sj.Judge)
-                .WithMany()
-                .HasForeignKey(sj => sj.JudgeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<SubmissionJudgment>()
-                .HasOne(sj => sj.Competition)
-                .WithMany()
-                .HasForeignKey(sj => sj.CompetitionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Add unique constraint to prevent multiple judgments per judge per submission per round
-            modelBuilder.Entity<SubmissionJudgment>()
-                .HasIndex(sj => new { sj.SubmissionId, sj.JudgeId, sj.VotingRound })
-                .IsUnique();
-
-            // Add index for querying judgments by competition and round
-            modelBuilder.Entity<SubmissionJudgment>()
-                .HasIndex(sj => new { sj.CompetitionId, sj.VotingRound });
-
-            // CriteriaScore
-            modelBuilder.Entity<CriteriaScore>()
-                .HasOne(cs => cs.SubmissionJudgment)
-                .WithMany(sj => sj.CriteriaScores)
-                .HasForeignKey(cs => cs.SubmissionJudgmentId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<CriteriaScore>()
-                .HasOne(cs => cs.JudgingCriteria)
-                .WithMany(jc => jc.CriteriaScores)
-                .HasForeignKey(cs => cs.JudgingCriteriaId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Add unique constraint to prevent multiple scores per criteria per judgment
-            modelBuilder.Entity<CriteriaScore>()
-                .HasIndex(cs => new { cs.SubmissionJudgmentId, cs.JudgingCriteriaId })
-                .IsUnique();
 
             // Configure Subscription entity
             modelBuilder.Entity<Subscription>()
@@ -441,7 +335,7 @@ namespace MixWarz.Infrastructure.Persistence
                 .HasIndex(s => s.Status);
 
             // Configure Hybrid Fair-Play Tournament entities
-            
+
             // Configure Judgement entity
             modelBuilder.Entity<Judgement>()
                 .HasOne(j => j.Submission)

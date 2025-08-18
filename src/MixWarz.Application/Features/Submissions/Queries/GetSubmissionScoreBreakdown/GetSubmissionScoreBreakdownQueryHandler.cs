@@ -58,137 +58,74 @@ namespace MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBre
 
         private async Task<ScoringResult?> DetermineAndCalculateScoresAsync(int submissionId, int competitionId, CancellationToken cancellationToken)
         {
-            // Score Breakdown ALWAYS uses SubmissionJudgments (processed results from voting/judging)
-            var judgments = await _context.SubmissionJudgments
-                .Where(sj => sj.SubmissionId == submissionId &&
-                           sj.VotingRound == 1 &&
-                           sj.IsCompleted == true)
-                .Include(sj => sj.CriteriaScores)
-                    .ThenInclude(cs => cs.JudgingCriteria)
+            // NEW HYBRID FAIR-PLAY TOURNAMENT: Uses simplified Judgement entities
+            var judgements = await _context.Judgements
+                .Where(j => j.SubmissionId == submissionId)
                 .ToListAsync(cancellationToken);
 
-            if (!judgments.Any())
-                return null; // No judgment data found
+            if (!judgements.Any())
+                return null; // No judgement data found
 
-            return await CalculateJudgmentBasedScoresAsync(submissionId, competitionId, judgments, cancellationToken);
+            return await CalculateHybridTournamentScoresAsync(submissionId, competitionId, judgements, cancellationToken);
         }
 
-        private async Task<ScoringResult> CalculateJudgmentBasedScoresAsync(int submissionId, int competitionId,
-            List<MixWarz.Domain.Entities.SubmissionJudgment> judgments, CancellationToken cancellationToken)
+        private async Task<ScoringResult> CalculateHybridTournamentScoresAsync(int submissionId, int competitionId,
+            List<MixWarz.Domain.Entities.Judgement> judgements, CancellationToken cancellationToken)
         {
             var criteriaBreakdowns = new List<CriteriaScoreBreakdown>();
 
-            // Check if competition uses detailed criteria or simple scoring
-            var allCriteria = await _context.JudgingCriterias
-                .Where(jc => jc.CompetitionId == competitionId)
-                .OrderBy(jc => jc.DisplayOrder)
-                .ToListAsync(cancellationToken);
+            // HYBRID FAIR-PLAY TOURNAMENT: Simplified scoring with single score + feedback
+            var judgementsWithScores = judgements.Where(j => j.Score > 0).ToList();
 
             decimal finalScore = 0;
 
-            if (allCriteria.Any())
+            if (judgementsWithScores.Any())
             {
-                // Detailed criteria-based scoring (traditional judging)
-                foreach (var criteria in allCriteria)
+                var averageScore = (decimal)judgementsWithScores.Average(j => j.Score);
+                var comments = judgements
+                    .Where(j => !string.IsNullOrWhiteSpace(j.Feedback))
+                    .Select(j => j.Feedback!)
+                    .ToList();
+
+                // Create a simple summary breakdown for Hybrid Fair-Play Tournament
+                criteriaBreakdowns.Add(new CriteriaScoreBreakdown
                 {
-                    var criteriaScores = judgments
-                        .SelectMany(j => j.CriteriaScores)
-                        .Where(cs => cs.JudgingCriteriaId == criteria.Id)
-                        .ToList();
+                    CriteriaId = 0,
+                    CriteriaName = "Overall Fair-Play Score",
+                    CriteriaDescription = "Score from Hybrid Fair-Play Tournament judging system",
+                    Weight = 1.0m,
+                    MinScore = 1,
+                    MaxScore = 10,
+                    AverageScore = Math.Round(averageScore, 2),
+                    WeightedScore = Math.Round(averageScore, 2),
+                    JudgesComments = comments.Any()
+                        ? comments
+                        : new List<string> { $"📊 Average score: {averageScore:F2} from {judgementsWithScores.Count} judges" },
+                    DisplayOrder = 1
+                });
 
-                    if (criteriaScores.Any())
-                    {
-                        var averageScore = criteriaScores.Average(cs => cs.Score);
-                        var weightedScore = averageScore * criteria.Weight;
-                        var comments = criteriaScores
-                            .Where(cs => !string.IsNullOrWhiteSpace(cs.Comments))
-                            .Select(cs => cs.Comments!)
-                            .ToList();
-
-                        criteriaBreakdowns.Add(new CriteriaScoreBreakdown
-                        {
-                            CriteriaId = criteria.Id,
-                            CriteriaName = criteria.Name,
-                            CriteriaDescription = criteria.Description,
-                            Weight = criteria.Weight,
-                            MinScore = criteria.MinScore,
-                            MaxScore = criteria.MaxScore,
-                            AverageScore = Math.Round(averageScore, 2),
-                            WeightedScore = Math.Round(weightedScore, 4),
-                            JudgesComments = comments,
-                            DisplayOrder = criteria.DisplayOrder
-                        });
-                    }
-                }
-
-                finalScore = criteriaBreakdowns.Sum(cb => cb.WeightedScore);
-            }
-            else
-            {
-                // Simple scoring - use OverallScore from judgments (processed from voting)
-                var judgmentsWithScores = judgments.Where(j => j.OverallScore.HasValue).ToList();
-
-                if (judgmentsWithScores.Any())
-                {
-                    var averageOverallScore = judgmentsWithScores.Average(j => j.OverallScore!.Value);
-                    var totalPoints = judgmentsWithScores.Sum(j => j.OverallScore!.Value);
-                    var comments = judgments
-                        .Where(j => !string.IsNullOrWhiteSpace(j.OverallComments))
-                        .Select(j => j.OverallComments!)
-                        .ToList();
-
-                    // Create a simple summary breakdown
-                    criteriaBreakdowns.Add(new CriteriaScoreBreakdown
-                    {
-                        CriteriaId = 0,
-                        CriteriaName = "Overall Score",
-                        CriteriaDescription = "Total score from Round 1 evaluation",
-                        Weight = 1.0m,
-                        MinScore = 0,
-                        MaxScore = (int)judgmentsWithScores.Max(j => j.OverallScore!.Value),
-                        AverageScore = Math.Round(averageOverallScore, 2),
-                        WeightedScore = Math.Round(averageOverallScore, 2),
-                        JudgesComments = comments.Any()
-                            ? comments
-                            : new List<string> { $"📊 Average score: {averageOverallScore:F2} from {judgmentsWithScores.Count} evaluations" },
-                        DisplayOrder = 1
-                    });
-
-                    finalScore = averageOverallScore;
-                }
+                finalScore = averageScore;
             }
 
-            var ranking = await CalculateJudgmentBasedRankingAsync(submissionId, competitionId, cancellationToken);
+            var ranking = await CalculateHybridTournamentRankingAsync(submissionId, competitionId, cancellationToken);
 
             return new ScoringResult
             {
                 FinalScore = finalScore,
                 Ranking = ranking,
                 CriteriaBreakdowns = criteriaBreakdowns,
-                TotalParticipants = judgments.Count
+                TotalParticipants = judgements.Count
             };
         }
 
-        private async Task<int> CalculateJudgmentBasedRankingAsync(int submissionId, int competitionId, CancellationToken cancellationToken)
+        private async Task<int> CalculateHybridTournamentRankingAsync(int submissionId, int competitionId, CancellationToken cancellationToken)
         {
-            // Try to get ranking from submission groups first
-            var submissionGroup = await _context.SubmissionGroups
-                .FirstOrDefaultAsync(sg => sg.SubmissionId == submissionId && sg.CompetitionId == competitionId,
-                    cancellationToken);
-
-            if (submissionGroup?.RankInGroup.HasValue == true)
-            {
-                return submissionGroup.RankInGroup.Value;
-            }
-
-            // Calculate ranking based on OverallScore from SubmissionJudgments
-            var allSubmissionScores = await _context.SubmissionJudgments
-                .Where(sj => sj.CompetitionId == competitionId &&
-                           sj.VotingRound == 1 &&
-                           sj.IsCompleted == true &&
-                           sj.OverallScore.HasValue)
-                .GroupBy(sj => sj.SubmissionId)
-                .Select(g => new { SubmissionId = g.Key, AverageScore = g.Average(sj => sj.OverallScore!.Value) })
+            // Calculate ranking based on average scores from Hybrid Fair-Play Tournament Judgements
+            var allSubmissionScores = await _context.Judgements
+                .Include(j => j.Submission)
+                .Where(j => j.Submission.CompetitionId == competitionId && j.Score > 0)
+                .GroupBy(j => j.SubmissionId)
+                .Select(g => new { SubmissionId = g.Key, AverageScore = (decimal)g.Average(j => j.Score) })
                 .OrderByDescending(s => s.AverageScore)
                 .ToListAsync(cancellationToken);
 

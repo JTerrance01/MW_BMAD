@@ -44,6 +44,7 @@ import { Link } from "react-router-dom";
 import { Editor } from "@tinymce/tinymce-react";
 import { getStatusDisplayText, getStatusStyling } from "../../utils/competitionUtils";
 import axios from "axios";
+import hybridTournamentService from "../../services/hybridTournamentService";
 
 const AdminCompetitionsPage = () => {
   const dispatch = useDispatch();
@@ -904,8 +905,8 @@ const AdminCompetitionsPage = () => {
         await updateCompetitionStatusDirect(competition.id, "VotingRound1Setup");
       }
       
-      // Load voting stats
-      await loadVotingStats(competition.id);
+      // Load judging stats
+      await loadJudgingStats(competition.id);
       await loadNonVoters(competition.id);
       setShowVotingModal(true);
     } catch (error) {
@@ -919,24 +920,20 @@ const AdminCompetitionsPage = () => {
   const handleCreateVotingGroups = async (competitionId, targetGroupSize = 20) => {
     setLoadingVoting(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `https://localhost:7001/api/competitions/${competitionId}/round1/create-groups`,
-        { targetGroupSize },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.success) {
-        alert(`✅ ${response.data.message}`);
-        // Refresh voting stats after creating groups
-        await loadVotingStats(competitionId);
+      console.log(`🔄 [Migration] Transitioning to Hybrid Fair-Play Tournament system for competition ${competitionId}`);
+      
+      // Use new hybrid tournament service instead of old round-based approach
+      const result = await hybridTournamentService.startUniversalJudging(competitionId);
+      
+      if (result.success) {
+        alert(`✅ NEW SYSTEM: ${result.message}`);
+        // Refresh judging stats after starting judging
+        await loadJudgingStats(competitionId);
         await loadNonVoters(competitionId);
       }
     } catch (error) {
-      console.error("Error creating voting groups:", error);
-      alert(`❌ Error creating voting groups: ${error.response?.data?.message || error.message}`);
+      console.error("Error starting universal judging:", error);
+      alert(`❌ Error starting judging: ${error.message}`);
     } finally {
       setLoadingVoting(false);
     }
@@ -957,46 +954,48 @@ const AdminCompetitionsPage = () => {
     }
   };
 
-  const loadVotingStats = async (competitionId) => {
+  const loadJudgingStats = async (competitionId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `https://localhost:7001/api/competitions/${competitionId}/round1/voting-stats`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log('📊 Voting Stats Response:', response.data);
-      setVotingStats(response.data);
+      console.log('📊 Loading judging stats using v2 API...');
+      const stats = await hybridTournamentService.getJudgingStats(competitionId);
+      console.log('📊 Judging Stats Response:', stats);
+      
+      // Transform hybrid tournament stats to match expected voting stats format
+      setVotingStats({
+        totalVoters: stats.totalJudges || 0,
+        votersCompleted: stats.judgesCompleted || 0,
+        votingCompletionPercentage: stats.judgingCompletionPercentage || 0,
+        groupCount: stats.assignmentCount > 0 ? 1 : 0, // Judging system uses unified assignments
+        groupStats: [],
+        setupComplete: stats.setupComplete || false,
+        setupMessage: stats.setupMessage || "Ready for judging setup"
+      });
     } catch (error) {
-      console.error("Error loading voting stats:", error);
+      console.error("Error loading judging stats:", error);
       // Set default stats instead of null to prevent display issues
       setVotingStats({
         totalVoters: 0,
         votersCompleted: 0,
         votingCompletionPercentage: 0,
         groupCount: 0,
-        groupStats: []
+        groupStats: [],
+        setupComplete: false,
+        setupMessage: "Unable to load judging statistics"
       });
     }
   };
 
+  // DEPRECATED: Remove old voting stats function
+  const loadVotingStats = async (competitionId) => {
+    console.warn('🔄 [DEPRECATED] loadVotingStats called - redirecting to loadJudgingStats');
+    return await loadJudgingStats(competitionId);
+  };
+
+  // DEPRECATED: Non-voters concept doesn't exist in judging system
   const loadNonVoters = async (competitionId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `https://localhost:7001/api/competitions/${competitionId}/round1/non-voters`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log('👥 Non-Voters Response:', response.data);
-      setNonVoters(response.data || []);
-    } catch (error) {
-      console.error("Error loading non-voters:", error);
-      // Set empty array on error to prevent display issues
-      setNonVoters([]);
-    }
+    console.warn('🔄 [DEPRECATED] loadNonVoters called - judging system uses unified assignments');
+    // Clear non-voters since judging system doesn't track individual non-participants
+    setNonVoters([]);
   };
 
   const updateCompetitionStatusDirect = async (competitionId, newStatus) => {
@@ -1015,90 +1014,55 @@ const AdminCompetitionsPage = () => {
   };
 
   const handleTallyVotes = async (competitionId) => {
-    if (!window.confirm("Are you sure you want to tally votes and advance submissions to Round 2? This action cannot be undone.")) {
+    if (!window.confirm("Are you sure you want to tally judging results and determine advancement? This action cannot be undone.")) {
       return;
     }
 
     setLoadingVoting(true);
     try {
-      const token = localStorage.getItem("token");
+      console.log(`🔄 [Migration] Using Hybrid Fair-Play Tournament tally system for competition ${competitionId}`);
       
-      // FIXED: Direct call to correct Round1AssignmentController endpoint
-      // The backend endpoint already handles status validation and auto-transition
-      const response = await axios.post(
-        `https://localhost:7001/api/competitions/${competitionId}/round1/tally-votes`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.success) {
-        alert(`✅ ${response.data.message}`);
+      // Use new hybrid tournament service instead of old round-based tallying
+      const result = await hybridTournamentService.tallyUniversalJudgingResults(competitionId, 10);
+      
+      if (result.success) {
+        alert(`✅ NEW SYSTEM: ${result.message}\n\nAdvanced: ${result.advancementCount || 0}, Eliminated: ${result.eliminatedCount || 0}`);
         setShowVotingModal(false);
         await loadCompetitions();
       }
     } catch (error) {
-      console.error("Error tallying votes:", error);
-      
-      // Enhanced error messaging for better debugging
-      if (error.response?.status === 400) {
-        alert(`❌ Error: ${error.response.data.message || 'Competition not in correct status for tallying votes'}`);
-      } else if (error.response?.status === 404) {
-        alert(`❌ Error: Competition or endpoint not found. Please check the competition ID.`);
-      } else if (error.response?.status === 405) {
-        alert(`❌ Error: Method not allowed. This indicates a routing issue.`);
-      } else {
-        alert(`❌ Error tallying votes: ${error.response?.data?.message || error.message}`);
-      }
+      console.error("Error tallying judging results:", error);
+      alert(`❌ Error tallying results: ${error.message}`);
     } finally {
       setLoadingVoting(false);
     }
   };
 
-  // NEW: Handle Round 2 vote tallying
+  // MIGRATED: Handle final tournament tallying
   const handleTallyRound2Votes = async (competitionId) => {
-    if (!window.confirm("Are you sure you want to tally Round 2 votes and determine the competition winner? This action cannot be undone.")) {
+    if (!window.confirm("Are you sure you want to finalize the competition results and determine the winner? This action cannot be undone.")) {
       return;
     }
 
     setLoadingVoting(true);
     try {
-      const token = localStorage.getItem("token");
+      console.log(`🔄 [Migration] Using Hybrid Fair-Play Tournament final tally for competition ${competitionId}`);
       
-      // Call Round2VotingController tally-votes endpoint
-      const response = await axios.post(
-        `https://localhost:7001/api/competitions/${competitionId}/round2/tally-votes`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.success) {
-        if (response.data.requiresManualSelection) {
-          // Handle tie scenario - competition moved to RequiresManualWinnerSelection status
-          alert(`⚖️ ${response.data.message}\n\nThe competition status has been updated to require manual winner selection.`);
+      // Use new hybrid tournament service for final results
+      const result = await hybridTournamentService.tallyUniversalJudgingResults(competitionId);
+      
+      if (result.success) {
+        if (result.competitionCompleted) {
+          alert(`🏆 NEW SYSTEM: ${result.message}\n\nThe competition has been completed successfully!`);
         } else {
-          // Handle clear winner scenario - competition completed
-          alert(`🏆 ${response.data.message}\n\nThe competition has been completed successfully!`);
+          alert(`✅ NEW SYSTEM: ${result.message}\n\nResults processed - check competition status for next steps.`);
         }
         setShowVotingModal(false);
         await loadCompetitions();
       }
     } catch (error) {
-      console.error("Error tallying Round 2 votes:", error);
-      
-      // Enhanced error messaging for Round 2 tallying
-      if (error.response?.status === 400) {
-        alert(`❌ Error: ${error.response.data.message || 'Competition not in correct status for Round 2 tallying'}`);
-      } else if (error.response?.status === 404) {
-        alert(`❌ Error: Competition or Round 2 tallying endpoint not found.`);
-      } else if (error.response?.status === 405) {
-        alert(`❌ Error: Method not allowed. Check Round 2 tallying endpoint routing.`);
-      } else {
-        alert(`❌ Error tallying Round 2 votes: ${error.response?.data?.message || error.message}`);
-      }
+      console.error("Error finalizing competition results:", error);
+      alert(`❌ Error finalizing results: ${error.message}`);
     } finally {
       setLoadingVoting(false);
     }
@@ -1924,7 +1888,7 @@ const AdminCompetitionsPage = () => {
       >
         <Modal.Header closeButton className="border-secondary">
           <Modal.Title className="text-primary">
-            Voting Management - {selectedCompetition?.title}
+            Judging Management - {selectedCompetition?.title}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -1950,21 +1914,21 @@ const AdminCompetitionsPage = () => {
                   {votingStats && (
                     <Card className="bg-secondary text-light h-100">
                       <Card.Body>
-                        <Card.Title>Voting Progress</Card.Title>
+                        <Card.Title>Judging Progress</Card.Title>
                         
-                        {/* Show warning if voting setup is incomplete */}
+                        {/* Show warning if judging setup is incomplete */}
                         {(votingStats.groupCount === 0 || votingStats.totalVoters === 0) && 
                          selectedCompetition.status === "VotingRound1Open" && (
                           <Alert variant="warning" className="mb-3 py-2">
                             <small>
-                              <strong>⚠️ Setup Incomplete:</strong> Voting groups need to be created.
+                              <strong>⚠️ Setup Incomplete:</strong> Judging assignments need to be created.
                             </small>
                           </Alert>
                         )}
                         
                         <div className="mb-2">
                           <small className="text-muted">
-                            Groups Created: {votingStats.groupCount || 0}
+                            Assignments Created: {votingStats.groupCount || 0}
                             {votingStats.groupCount === 0 && (
                               <span className="text-warning ms-1">⚠️</span>
                             )}
@@ -1972,7 +1936,7 @@ const AdminCompetitionsPage = () => {
                         </div>
                         <div className="mb-2">
                           <small className="text-muted">
-                            Voters: {votingStats.votersCompleted || 0} / {votingStats.totalVoters || 0}
+                            Judges: {votingStats.votersCompleted || 0} / {votingStats.totalVoters || 0}
                             {votingStats.totalVoters === 0 && (
                               <span className="text-warning ms-1">⚠️</span>
                             )}
@@ -1981,7 +1945,8 @@ const AdminCompetitionsPage = () => {
                         <ProgressBar 
                           now={votingStats.votingCompletionPercentage || 0} 
                           label={`${Math.round(votingStats.votingCompletionPercentage || 0)}%`}
-                          variant={votingStats.totalVoters === 0 ? "warning" : "info"}
+                          variant={votingStats.totalVoters === 0 ? "warning" : "success"}
+                          title="Judging completion progress"
                         />
                       </Card.Body>
                     </Card>
@@ -2065,7 +2030,7 @@ const AdminCompetitionsPage = () => {
                       </Alert>
                     ) : (
                       <Alert variant="warning">
-                        <strong>Setup Required:</strong> Create voting groups before opening voting.
+                        <strong>Setup Required:</strong> Create judging assignments before opening judging.
                       </Alert>
                     )}
                     <div className="d-flex gap-2">
@@ -2073,17 +2038,17 @@ const AdminCompetitionsPage = () => {
                         variant="primary"
                         onClick={() => handleCreateVotingGroups(selectedCompetition.id)}
                         disabled={loadingVoting || votingStats?.groupCount > 0}
-                        title={votingStats?.groupCount > 0 ? "Voting groups already created" : "Create voting groups for this competition"}
+                        title={votingStats?.groupCount > 0 ? "Judging phase already started" : "Start judging phase with Hybrid Fair-Play Tournament system"}
                       >
                         {loadingVoting ? (
                           <>
                             <Spinner size="sm" className="me-2" />
-                            Creating Groups...
+                            Starting Judging...
                           </>
                         ) : (
                           <>
                             <FaUsers className="me-2" />
-                            {votingStats?.groupCount > 0 ? "✅ Groups Created" : "Create Voting Groups"}
+                            {votingStats?.groupCount > 0 ? "✅ Judging Started" : "Start Judging Phase"}
                           </>
                         )}
                       </Button>
@@ -2131,7 +2096,7 @@ const AdminCompetitionsPage = () => {
                           <Button
                             variant="outline-info"
                             onClick={() => {
-                              loadVotingStats(selectedCompetition.id);
+                              loadJudgingStats(selectedCompetition.id);
                               loadNonVoters(selectedCompetition.id);
                             }}
                             disabled={loadingVoting}
@@ -2150,7 +2115,7 @@ const AdminCompetitionsPage = () => {
                             variant="warning"
                             onClick={() => handleTallyVotes(selectedCompetition.id)}
                             disabled={loadingVoting}
-                            title="UNIFIED APPROACH: Tally Votes & Advance to Round 2"
+                            title="Hybrid Fair-Play Tournament: Tally Judging Results & Advance Top Submissions"
                           >
                             {loadingVoting ? (
                               <>
@@ -2160,14 +2125,14 @@ const AdminCompetitionsPage = () => {
                             ) : (
                               <>
                                 <FaVoteYea className="me-2" />
-                                Tally Votes & Advance
+                                Tally Judging Results
                               </>
                             )}
                           </Button>
                           <Button
                             variant="outline-info"
                             onClick={() => {
-                              loadVotingStats(selectedCompetition.id);
+                              loadJudgingStats(selectedCompetition.id);
                               loadNonVoters(selectedCompetition.id);
                             }}
                             disabled={loadingVoting}
@@ -2177,8 +2142,8 @@ const AdminCompetitionsPage = () => {
                         </div>
                         <div className="mt-3">
                           <small className="text-muted">
-                            <strong>UNIFIED SYSTEM:</strong> Automatically processes both traditional rankings and judgment-based scores.<br/>
-                            Judgment criteria are converted to 1st/2nd/3rd place votes. Winner determined by most 1st place rankings.
+                            <strong>HYBRID FAIR-PLAY TOURNAMENT:</strong> Advanced judging system with score accuracy tracking and feedback ratings.<br/>
+                            Judging prowess calculated based on score accuracy and feedback helpfulness. Results determined by comprehensive evaluation.
                           </small>
                         </div>
                       </>
@@ -2315,7 +2280,7 @@ const AdminCompetitionsPage = () => {
                         variant="outline-secondary"
                         size="sm"
                         onClick={() => handleTallyVotes(competition.id)}
-                        title="UNIFIED APPROACH: Tally Votes & Advance to Round 2"
+                        title="Hybrid Fair-Play Tournament: Tally Judging Results"
                         disabled={loadingVoting}
                       >
                         <FaVoteYea />

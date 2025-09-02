@@ -17,7 +17,7 @@ namespace MixWarz.Application.Features.Judging.DTOs
         /// ID of the user submitting the judgement (the judge)
         /// </summary>
         [Required]
-        public required string JudgeUserId { get; set; }
+        public required string JudgeId { get; set; }
 
         /// <summary>
         /// Score given to the submission (1-10)
@@ -27,9 +27,9 @@ namespace MixWarz.Application.Features.Judging.DTOs
         public int Score { get; set; }
 
         /// <summary>
-        /// Feedback provided to the submitter
+        /// Comments provided to the submitter
         /// </summary>
         [Required]
-        public required string Feedback { get; set; }
+        public required string Comments { get; set; }
     }
 }

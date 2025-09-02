@@ -12,11 +12,11 @@ namespace MixWarz.Application.Features.Submissions.Commands.JudgeSubmission
             RuleFor(x => x.Score)
                 .InclusiveBetween(1, 100).WithMessage("Score must be between 1 and 100");
                 
-            RuleFor(x => x.JudgeUserId)
-                .NotEmpty().WithMessage("Judge user ID is required");
+            RuleFor(x => x.JudgeId)
+                .NotEmpty().WithMessage("Judge ID is required");
                 
-            RuleFor(x => x.Feedback)
-                .MaximumLength(2000).WithMessage("Feedback must not exceed 2000 characters");
+            RuleFor(x => x.Comments)
+                .MaximumLength(2000).WithMessage("Comments must not exceed 2000 characters");
         }
     }
 } 

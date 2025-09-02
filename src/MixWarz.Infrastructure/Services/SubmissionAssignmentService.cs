@@ -31,8 +31,6 @@ namespace MixWarz.Infrastructure.Services
         /// <returns>Number of assignments created</returns>
         public async Task<int> CreateAssignments(int competitionId, int assignmentsPerJudge = DefaultAssignmentsPerJudge)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(CancellationToken.None);
-
             try
             {
                 _logger.LogInformation("Starting assignment creation for competition {CompetitionId}", competitionId);
@@ -103,16 +101,16 @@ namespace MixWarz.Infrastructure.Services
                         // Check if assignment already exists to prevent duplicates
                         var existingAssignment = await _context.Judgements
                             .FirstOrDefaultAsync(j => j.SubmissionId == submission.SubmissionId &&
-                                                    j.JudgeUserId == competitor.Id);
+                                                    j.JudgeId == competitor.Id);
 
                         if (existingAssignment == null)
                         {
                             var judgement = new Judgement
                             {
                                 SubmissionId = submission.SubmissionId,
-                                JudgeUserId = competitor.Id,
+                                JudgeId = competitor.Id,
                                 Score = 0, // Will be filled when judge submits their judgement
-                                Feedback = "", // Will be filled when judge submits their judgement
+                                Comments = "", // Will be filled when judge submits their judgement
                                 SubmittedAt = DateTime.UtcNow // Temporary timestamp, will be updated when actually submitted
                             };
 
@@ -140,9 +138,8 @@ namespace MixWarz.Infrastructure.Services
                     }
                 }
 
-                // Save all changes
+                // Save all changes (transaction managed by calling service)
                 await _context.SaveChangesAsync(CancellationToken.None);
-                await transaction.CommitAsync(CancellationToken.None);
 
                 _logger.LogInformation("Successfully created {AssignmentCount} assignments for competition {CompetitionId}",
                     assignmentsCreated, competitionId);
@@ -151,7 +148,6 @@ namespace MixWarz.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(CancellationToken.None);
                 _logger.LogError(ex, "Failed to create assignments for competition {CompetitionId}", competitionId);
                 throw;
             }

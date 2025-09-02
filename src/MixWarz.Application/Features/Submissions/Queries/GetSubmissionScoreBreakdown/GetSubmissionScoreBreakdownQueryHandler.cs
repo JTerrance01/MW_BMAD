@@ -83,8 +83,8 @@ namespace MixWarz.Application.Features.Submissions.Queries.GetSubmissionScoreBre
             {
                 var averageScore = (decimal)judgementsWithScores.Average(j => j.Score);
                 var comments = judgements
-                    .Where(j => !string.IsNullOrWhiteSpace(j.Feedback))
-                    .Select(j => j.Feedback!)
+                    .Where(j => !string.IsNullOrWhiteSpace(j.Comments))
+                    .Select(j => j.Comments!)
                     .ToList();
 
                 // Create a simple summary breakdown for Hybrid Fair-Play Tournament

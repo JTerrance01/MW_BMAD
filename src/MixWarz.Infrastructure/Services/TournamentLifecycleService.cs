@@ -228,7 +228,7 @@ namespace MixWarz.Infrastructure.Services
                 .ToListAsync();
 
             var totalAssignments = allJudgements.Count;
-            var completedJudgements = allJudgements.Count(j => j.Score > 0 && !string.IsNullOrEmpty(j.Feedback));
+            var completedJudgements = allJudgements.Count(j => j.IsCompleted);
 
             var judgingProgress = totalAssignments > 0 ? (double)completedJudgements / totalAssignments * 100 : 0;
 

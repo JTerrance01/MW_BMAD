@@ -8,8 +8,8 @@ namespace MixWarz.Application.Features.Submissions.Commands.JudgeSubmission
     {
         public int SubmissionId { get; set; }
         public decimal Score { get; set; }
-        public string? Feedback { get; set; }
-        public string? JudgeUserId { get; set; }
+        public string? Comments { get; set; }
+        public string? JudgeId { get; set; }
         public bool IsAdmin { get; set; }
     }
 
@@ -59,7 +59,7 @@ namespace MixWarz.Application.Features.Submissions.Commands.JudgeSubmission
             }
 
             // Check if the user is authorized to judge this submission (admin or organizer)
-            if (!request.IsAdmin && competition.OrganizerUserId != request.JudgeUserId)
+            if (!request.IsAdmin && competition.OrganizerUserId != request.JudgeId)
             {
                 return new JudgeSubmissionResponse
                 {
@@ -70,7 +70,7 @@ namespace MixWarz.Application.Features.Submissions.Commands.JudgeSubmission
 
             // Update the submission
             submission.FinalScore = request.Score;
-            submission.Feedback = request.Feedback;
+            submission.Feedback = request.Comments;
             submission.Status = SubmissionStatus.Judged;
 
             await _submissionRepository.UpdateAsync(submission);

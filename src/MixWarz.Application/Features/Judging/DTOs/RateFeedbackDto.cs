@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace MixWarz.Application.Features.Judging.DTOs
 {
     /// <summary>
-    /// DTO for rating the helpfulness of feedback received from a judge
+    /// DTO for rating the quality of feedback received from a judge
     /// </summary>
     public class RateFeedbackDto
     {
@@ -14,15 +14,15 @@ namespace MixWarz.Application.Features.Judging.DTOs
         public int JudgementId { get; set; }
 
         /// <summary>
-        /// ID of the user rating the feedback (typically the submission owner)
+        /// ID of the participant rating the feedback (typically the submission owner)
         /// </summary>
         [Required]
-        public required string RaterUserId { get; set; }
+        public required string ParticipantId { get; set; }
 
         /// <summary>
-        /// Whether the feedback was helpful or not
+        /// Rating given to the feedback quality
         /// </summary>
         [Required]
-        public bool IsHelpful { get; set; }
+        public int Rating { get; set; }
     }
 }

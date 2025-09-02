@@ -193,8 +193,8 @@ namespace MixWarz.API.Controllers
             {
                 SubmissionId = submissionId,
                 Score = request.Score,
-                Feedback = request.Feedback,
-                JudgeUserId = userId!, // Null check is performed above
+                Comments = request.Comments,
+                JudgeId = userId!, // Null check is performed above
                 IsAdmin = isAdmin
             };
 
@@ -317,6 +317,6 @@ namespace MixWarz.API.Controllers
     public class JudgeSubmissionRequest
     {
         public decimal Score { get; set; }
-        public required string Feedback { get; set; } = string.Empty;
+        public required string Comments { get; set; } = string.Empty;
     }
 }

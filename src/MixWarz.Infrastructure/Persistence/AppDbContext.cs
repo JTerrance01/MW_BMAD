@@ -346,12 +346,12 @@ namespace MixWarz.Infrastructure.Persistence
             modelBuilder.Entity<Judgement>()
                 .HasOne(j => j.Judge)
                 .WithMany()
-                .HasForeignKey(j => j.JudgeUserId)
+                .HasForeignKey(j => j.JudgeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Add unique constraint to prevent multiple judgements per judge per submission
             modelBuilder.Entity<Judgement>()
-                .HasIndex(j => new { j.SubmissionId, j.JudgeUserId })
+                .HasIndex(j => new { j.SubmissionId, j.JudgeId })
                 .IsUnique();
 
             // Configure FeedbackRating entity
@@ -362,14 +362,14 @@ namespace MixWarz.Infrastructure.Persistence
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<FeedbackRating>()
-                .HasOne(fr => fr.Rater)
+                .HasOne(fr => fr.Participant)
                 .WithMany()
-                .HasForeignKey(fr => fr.RaterUserId)
+                .HasForeignKey(fr => fr.ParticipantId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Add unique constraint to prevent multiple ratings per judgement per rater
+            // Add unique constraint to prevent multiple ratings per judgement per participant
             modelBuilder.Entity<FeedbackRating>()
-                .HasIndex(fr => new { fr.JudgementId, fr.RaterUserId })
+                .HasIndex(fr => new { fr.JudgementId, fr.ParticipantId })
                 .IsUnique();
 
             // Seed initial categories

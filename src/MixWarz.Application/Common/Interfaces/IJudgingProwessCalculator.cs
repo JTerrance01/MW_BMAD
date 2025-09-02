@@ -17,17 +17,17 @@ namespace MixWarz.Application.Common.Interfaces
         /// Calculates judging prowess score for a specific judge in a competition
         /// </summary>
         /// <param name="competitionId">The ID of the competition</param>
-        /// <param name="judgeUserId">The ID of the judge</param>
+        /// <param name="judgeId">The ID of the judge</param>
         /// <returns>The calculated prowess score</returns>
-        Task<decimal> CalculateJudgeProwessScore(int competitionId, string judgeUserId);
+        Task<decimal> CalculateJudgeProwessScore(int competitionId, string judgeId);
 
         /// <summary>
         /// Gets prowess calculation details for a judge (for debugging/transparency)
         /// </summary>
         /// <param name="competitionId">The ID of the competition</param>
-        /// <param name="judgeUserId">The ID of the judge</param>
+        /// <param name="judgeId">The ID of the judge</param>
         /// <returns>Detailed breakdown of prowess calculation</returns>
-        Task<JudgingProwessDetails> GetProwessCalculationDetails(int competitionId, string judgeUserId);
+        Task<JudgingProwessDetails> GetProwessCalculationDetails(int competitionId, string judgeId);
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ namespace MixWarz.Application.Common.Interfaces
     /// </summary>
     public class JudgingProwessDetails
     {
-        public string JudgeUserId { get; set; } = string.Empty;
+        public string JudgeId { get; set; } = string.Empty;
         public int CompetitionId { get; set; }
         public int TotalJudgements { get; set; }
         public decimal AverageScoreAccuracy { get; set; }

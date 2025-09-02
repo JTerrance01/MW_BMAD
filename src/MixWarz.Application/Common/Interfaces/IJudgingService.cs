@@ -29,10 +29,10 @@ namespace MixWarz.Application.Common.Interfaces
         /// <summary>
         /// Gets all judgements assigned to a specific judge for a competition
         /// </summary>
-        /// <param name="judgeUserId">The ID of the judge</param>
+        /// <param name="judgeId">The ID of the judge</param>
         /// <param name="competitionId">The ID of the competition</param>
         /// <returns>List of judgements assigned to the judge</returns>
-        Task<IEnumerable<Judgement>> GetJudgeAssignments(string judgeUserId, int competitionId);
+        Task<IEnumerable<Judgement>> GetJudgeAssignments(string judgeId, int competitionId);
 
         /// <summary>
         /// Gets all judgements received for a specific submission

@@ -26,13 +26,18 @@ namespace MixWarz.Infrastructure.Services
         /// </summary>
         public async Task<Judgement> SubmitJudgement(SubmitJudgementDto judgementDto)
         {
-            _logger.LogInformation("Submitting judgement for submission {SubmissionId} by judge {JudgeUserId}",
-                judgementDto.SubmissionId, judgementDto.JudgeUserId);
+            _logger.LogInformation("Submitting judgement for submission {SubmissionId} by judge {JudgeId}",
+                judgementDto.SubmissionId, judgementDto.JudgeId);
 
-            // Validate score range first
+            // Validate judgement data
             if (judgementDto.Score < 1 || judgementDto.Score > 10)
             {
                 throw new ArgumentException("Score must be between 1 and 10", nameof(judgementDto));
+            }
+
+            if (string.IsNullOrWhiteSpace(judgementDto.Comments))
+            {
+                throw new ArgumentException("Comments are required when submitting a judgement", nameof(judgementDto));
             }
 
             // Validate that the submission exists and is in the correct state
@@ -51,30 +56,30 @@ namespace MixWarz.Infrastructure.Services
             }
 
             // Validate that the judge exists
-            var judge = await _context.Users.FindAsync(judgementDto.JudgeUserId);
+            var judge = await _context.Users.FindAsync(judgementDto.JudgeId);
             if (judge == null)
             {
-                throw new ArgumentException($"Judge with ID {judgementDto.JudgeUserId} not found", nameof(judgementDto));
+                throw new ArgumentException($"Judge with ID {judgementDto.JudgeId} not found", nameof(judgementDto));
             }
 
             // Validate that the judge is assigned to this submission
             var existingAssignment = await _context.Judgements
                 .FirstOrDefaultAsync(j => j.SubmissionId == judgementDto.SubmissionId &&
-                                         j.JudgeUserId == judgementDto.JudgeUserId);
+                                         j.JudgeId == judgementDto.JudgeId);
 
             if (existingAssignment == null)
             {
-                throw new InvalidOperationException($"Judge {judgementDto.JudgeUserId} is not assigned to judge submission {judgementDto.SubmissionId}");
+                throw new InvalidOperationException($"Judge {judgementDto.JudgeId} is not assigned to judge submission {judgementDto.SubmissionId}");
             }
 
-            // Check if the judgement has already been submitted (score > 0 and feedback not empty)
-            if (existingAssignment.Score > 0 && !string.IsNullOrWhiteSpace(existingAssignment.Feedback))
+            // Check if the judgement has already been submitted (score > 0 and comments not empty)
+            if (existingAssignment.Score > 0 && !string.IsNullOrWhiteSpace(existingAssignment.Comments))
             {
-                throw new InvalidOperationException($"Judge {judgementDto.JudgeUserId} has already submitted a judgement for submission {judgementDto.SubmissionId}");
+                throw new InvalidOperationException($"Judge {judgementDto.JudgeId} has already submitted a judgement for submission {judgementDto.SubmissionId}");
             }
 
             // Prevent self-judging as an additional safety check
-            if (submission.UserId == judgementDto.JudgeUserId)
+            if (submission.UserId == judgementDto.JudgeId)
             {
                 throw new InvalidOperationException("A competitor cannot judge their own submission");
             }
@@ -87,33 +92,33 @@ namespace MixWarz.Infrastructure.Services
 
                 // Update the existing assignment with the actual judgement data
                 existingAssignment.Score = judgementDto.Score;
-                existingAssignment.Feedback = judgementDto.Feedback;
+                existingAssignment.Comments = judgementDto.Comments;
                 existingAssignment.SubmittedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync(CancellationToken.None);
                 await transaction.CommitAsync(CancellationToken.None);
 
-                _logger.LogInformation("Successfully submitted judgement {JudgementId} for submission {SubmissionId} by judge {JudgeUserId}",
-                    existingAssignment.JudgementId, judgementDto.SubmissionId, judgementDto.JudgeUserId);
+                _logger.LogInformation("Successfully submitted judgement {JudgementId} for submission {SubmissionId} by judge {JudgeId}",
+                    existingAssignment.JudgementId, judgementDto.SubmissionId, judgementDto.JudgeId);
 
                 return existingAssignment;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(CancellationToken.None);
-                _logger.LogError(ex, "Failed to submit judgement for submission {SubmissionId} by judge {JudgeUserId}",
-                    judgementDto.SubmissionId, judgementDto.JudgeUserId);
+                _logger.LogError(ex, "Failed to submit judgement for submission {SubmissionId} by judge {JudgeId}",
+                    judgementDto.SubmissionId, judgementDto.JudgeId);
                 throw;
             }
         }
 
         /// <summary>
-        /// Rates the helpfulness of feedback received from a judge
+        /// Rates the quality of feedback received from a judge
         /// </summary>
         public async Task<FeedbackRating> RateFeedback(RateFeedbackDto ratingDto)
         {
-            _logger.LogInformation("Rating feedback for judgement {JudgementId} by user {RaterUserId}",
-                ratingDto.JudgementId, ratingDto.RaterUserId);
+            _logger.LogInformation("Rating feedback for judgement {JudgementId} by participant {ParticipantId}",
+                ratingDto.JudgementId, ratingDto.ParticipantId);
 
             // Validate that the judgement exists and has been submitted
             var judgement = await _context.Judgements
@@ -126,32 +131,32 @@ namespace MixWarz.Infrastructure.Services
             }
 
             // Ensure the judgement has actually been submitted (not just an assignment)
-            if (judgement.Score == 0 || string.IsNullOrWhiteSpace(judgement.Feedback))
+            if (judgement.Score == 0 || string.IsNullOrWhiteSpace(judgement.Comments))
             {
                 throw new InvalidOperationException($"Judgement {ratingDto.JudgementId} has not been submitted yet and cannot be rated");
             }
 
-            // Validate that the rater exists
-            var rater = await _context.Users.FindAsync(ratingDto.RaterUserId);
-            if (rater == null)
+            // Validate that the participant exists
+            var participant = await _context.Users.FindAsync(ratingDto.ParticipantId);
+            if (participant == null)
             {
-                throw new ArgumentException($"Rater with ID {ratingDto.RaterUserId} not found", nameof(ratingDto));
+                throw new ArgumentException($"Participant with ID {ratingDto.ParticipantId} not found", nameof(ratingDto));
             }
 
-            // Validate that the rater is the owner of the submission that was judged
-            if (judgement.Submission.UserId != ratingDto.RaterUserId)
+            // Validate that the participant is the owner of the submission that was judged
+            if (judgement.Submission.UserId != ratingDto.ParticipantId)
             {
-                throw new InvalidOperationException($"Only the submission owner can rate feedback. Expected: {judgement.Submission.UserId}, Actual: {ratingDto.RaterUserId}");
+                throw new InvalidOperationException($"Only the submission owner can rate feedback. Expected: {judgement.Submission.UserId}, Actual: {ratingDto.ParticipantId}");
             }
 
-            // Check if this user has already rated this judgement
+            // Check if this participant has already rated this judgement
             var existingRating = await _context.FeedbackRatings
                 .FirstOrDefaultAsync(fr => fr.JudgementId == ratingDto.JudgementId &&
-                                          fr.RaterUserId == ratingDto.RaterUserId);
+                                          fr.ParticipantId == ratingDto.ParticipantId);
 
             if (existingRating != null)
             {
-                throw new InvalidOperationException($"User {ratingDto.RaterUserId} has already rated judgement {ratingDto.JudgementId}");
+                throw new InvalidOperationException($"Participant {ratingDto.ParticipantId} has already rated judgement {ratingDto.JudgementId}");
             }
 
             // All validation passed, now start transaction for the actual update
@@ -164,8 +169,8 @@ namespace MixWarz.Infrastructure.Services
                 var feedbackRating = new FeedbackRating
                 {
                     JudgementId = ratingDto.JudgementId,
-                    RaterUserId = ratingDto.RaterUserId,
-                    IsHelpful = ratingDto.IsHelpful,
+                    ParticipantId = ratingDto.ParticipantId,
+                    Rating = ratingDto.Rating,
                     RatedAt = DateTime.UtcNow
                 };
 
@@ -173,16 +178,16 @@ namespace MixWarz.Infrastructure.Services
                 await _context.SaveChangesAsync(CancellationToken.None);
                 await transaction.CommitAsync(CancellationToken.None);
 
-                _logger.LogInformation("Successfully rated feedback for judgement {JudgementId} by user {RaterUserId} as {Rating}",
-                    ratingDto.JudgementId, ratingDto.RaterUserId, ratingDto.IsHelpful ? "helpful" : "not helpful");
+                _logger.LogInformation("Successfully rated feedback for judgement {JudgementId} by participant {ParticipantId} with rating {Rating}",
+                    ratingDto.JudgementId, ratingDto.ParticipantId, ratingDto.Rating);
 
                 return feedbackRating;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(CancellationToken.None);
-                _logger.LogError(ex, "Failed to rate feedback for judgement {JudgementId} by user {RaterUserId}",
-                    ratingDto.JudgementId, ratingDto.RaterUserId);
+                _logger.LogError(ex, "Failed to rate feedback for judgement {JudgementId} by participant {ParticipantId}",
+                    ratingDto.JudgementId, ratingDto.ParticipantId);
                 throw;
             }
         }
@@ -190,17 +195,17 @@ namespace MixWarz.Infrastructure.Services
         /// <summary>
         /// Gets all judgements assigned to a specific judge for a competition
         /// </summary>
-        public async Task<IEnumerable<Judgement>> GetJudgeAssignments(string judgeUserId, int competitionId)
+        public async Task<IEnumerable<Judgement>> GetJudgeAssignments(string judgeId, int competitionId)
         {
-            _logger.LogDebug("Getting judge assignments for user {JudgeUserId} in competition {CompetitionId}",
-                judgeUserId, competitionId);
+            _logger.LogDebug("Getting judge assignments for user {JudgeId} in competition {CompetitionId}",
+                judgeId, competitionId);
 
             return await _context.Judgements
                 .Include(j => j.Submission)
                     .ThenInclude(s => s.User)
                 .Include(j => j.Submission)
                     .ThenInclude(s => s.Competition)
-                .Where(j => j.JudgeUserId == judgeUserId &&
+                .Where(j => j.JudgeId == judgeId &&
                            j.Submission.CompetitionId == competitionId)
                 .OrderBy(j => j.Submission.SubmissionDate)
                 .ToListAsync();

@@ -64,8 +64,8 @@ namespace MixWarz.API.Controllers.v2
                     return BadRequest(new { message = "Submission ID in URL does not match the judgement data" });
                 }
 
-                // Set the judge user ID from the authenticated user
-                judgementDto.JudgeUserId = userId;
+                // Set the judge ID from the authenticated user
+                judgementDto.JudgeId = userId;
 
                 // Validate model state
                 if (!ModelState.IsValid)
@@ -139,8 +139,8 @@ namespace MixWarz.API.Controllers.v2
                     return BadRequest(new { message = "Judgement ID in URL does not match the rating data" });
                 }
 
-                // Set the rater user ID from the authenticated user
-                ratingDto.RaterUserId = userId;
+                // Set the participant ID from the authenticated user
+                ratingDto.ParticipantId = userId;
 
                 // Validate model state
                 if (!ModelState.IsValid)
@@ -300,6 +300,50 @@ namespace MixWarz.API.Controllers.v2
                 _logger.LogError(ex, "[GetLifecycleStatus] Unexpected error occurred while getting lifecycle status for competition {CompetitionId}",
                     competitionId);
                 return StatusCode(500, new { message = "An unexpected error occurred while getting lifecycle status" });
+            }
+        }
+
+        /// <summary>
+        /// Get all submissions assigned to the current judge for a specific competition
+        /// </summary>
+        /// <param name="competitionId">The ID of the competition to get assignments for</param>
+        /// <returns>List of judgements assigned to the current judge</returns>
+        [HttpGet("competitions/{competitionId}/judge-assignments")]
+        public async Task<ActionResult<IEnumerable<Judgement>>> GetJudgeAssignments(int competitionId)
+        {
+            try
+            {
+                // Get the current user's ID from claims
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst("userId")?.Value
+                           ?? User.FindFirst("sub")?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("[GetJudgeAssignments] User ID not found in claims");
+                    return Unauthorized(new { message = "User authentication required" });
+                }
+
+                _logger.LogInformation("[GetJudgeAssignments] Judge {JudgeId} requesting assignments for competition {CompetitionId}",
+                    userId, competitionId);
+
+                var assignments = await _judgingService.GetJudgeAssignments(userId, competitionId);
+
+                _logger.LogInformation("[GetJudgeAssignments] Found {AssignmentCount} assignments for judge {JudgeId} in competition {CompetitionId}",
+                    assignments.Count(), userId, competitionId);
+
+                return Ok(assignments);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "[GetJudgeAssignments] Invalid argument: {Message}", ex.Message);
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GetJudgeAssignments] Unexpected error occurred while getting judge assignments for competition {CompetitionId}",
+                    competitionId);
+                return StatusCode(500, new { message = "An unexpected error occurred while getting judge assignments" });
             }
         }
     }

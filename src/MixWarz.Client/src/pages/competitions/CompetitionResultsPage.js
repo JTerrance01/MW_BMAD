@@ -18,7 +18,9 @@ import {
   FaMedal,
   FaAward,
   FaVoteYea,
+  FaUser,
 } from "react-icons/fa";
+import SafeImage from "../../components/common/SafeImage.js";
 import { fetchCompetitionResults } from "../../store/competitionSlice";
 import { getStatusDisplayText } from "../../utils/competitionUtils";
 import SimpleResultsAudioPlayer from "../../components/competitions/SimpleResultsAudioPlayer";
@@ -87,7 +89,7 @@ const CompetitionResultsPage = () => {
     
     // Handle URLs that start with uploads/ (relative paths)
     if (url.startsWith('uploads/') || url.startsWith('/uploads/')) {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://localhost:7001';
+      const baseUrl = process.env.REACT_APP_API_URL || ''; // Use relative URLs since we have proxy configured
       let cleanPath = url.startsWith('/') ? url.slice(1) : url;
       
       // Fix double uploads/ in path (e.g., "uploads/uploads/submissions/..." -> "uploads/submissions/...")
@@ -326,21 +328,22 @@ const CompetitionResultsPage = () => {
                           </div>
 
                           {/* Profile Picture */}
-                          {winner.profilePicture && (
-                            <div className="mb-3">
-                              <img
-                                src={winner.profilePicture}
-                                alt={`${winner.userName}'s profile`}
-                                className="rounded-circle border border-3 shadow"
-                                style={{
-                                  width: "90px",
-                                  height: "90px",
-                                  objectFit: "cover",
-                                  borderColor: index === 0 ? "#ffc107" : index === 1 ? "#6c757d" : "#dc3545"
-                                }}
-                              />
-                            </div>
-                          )}
+                          <div className="mb-3">
+                            <SafeImage
+                              src={winner.profilePicture}
+                              alt={`${winner.userName}'s profile`}
+                              className="rounded-circle border border-3 shadow"
+                              style={{
+                                width: "90px",
+                                height: "90px",
+                                objectFit: "cover",
+                                borderColor: index === 0 ? "#ffc107" : index === 1 ? "#6c757d" : "#dc3545"
+                              }}
+                              fallbackIcon={FaUser}
+                              fallbackSize={32}
+                              fallbackColor="text-secondary"
+                            />
+                          </div>
                         </div>
 
                         {/* Only show audio player for 1st place winner */}

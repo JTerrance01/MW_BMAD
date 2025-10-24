@@ -307,11 +307,11 @@ namespace MixWarz.Infrastructure.Services
                 s3Key = $"uploads/{s3Key}";
             }
 
-            // Combine with base URL, ensuring no double slashes
-            string baseUrlTrimmed = _baseUrl.TrimEnd('/');
-            string url = $"{baseUrlTrimmed}/{s3Key}";
+            // In development, return relative URLs to avoid certificate issues
+            // The frontend proxy will handle routing to the correct server
+            string url = $"/{s3Key}";
 
-            Console.WriteLine($"Generated URL: {url}");
+            Console.WriteLine($"Generated relative URL: {url}");
             return url;
         }
     }

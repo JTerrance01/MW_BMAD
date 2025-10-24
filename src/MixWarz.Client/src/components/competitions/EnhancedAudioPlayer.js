@@ -34,7 +34,7 @@ const EnhancedAudioPlayer = ({
     
     // Handle relative paths
     if (url.startsWith('uploads/') || url.startsWith('/uploads/')) {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://localhost:7001';
+      const baseUrl = process.env.REACT_APP_API_URL || ''; // Use relative URLs since we have proxy configured
       let cleanPath = url.startsWith('/') ? url.slice(1) : url;
       
       // Fix double uploads/ in relative path

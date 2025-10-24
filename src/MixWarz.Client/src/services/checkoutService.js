@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://localhost:7001/api';
+const API_BASE_URL = '/api'; // Use relative URL since we have proxy configured
 
 /**
  * Creates a Stripe checkout session for the provided cart items

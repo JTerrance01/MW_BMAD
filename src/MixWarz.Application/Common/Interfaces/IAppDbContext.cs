@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using MixWarz.Domain.Entities;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ namespace MixWarz.Application.Common.Interfaces
 {
     public interface IAppDbContext
     {
+        DatabaseFacade Database { get; }
         DbSet<User> Users { get; set; }
         DbSet<UserProfileGalleryImage> UserProfileGalleryImages { get; set; }
         DbSet<UserProfileAudioFile> UserProfileAudioFiles { get; set; }
@@ -23,15 +25,15 @@ namespace MixWarz.Application.Common.Interfaces
         // Competition entities
         DbSet<Competition> Competitions { get; set; }
         DbSet<Submission> Submissions { get; set; }
-        DbSet<SubmissionVote> SubmissionVotes { get; set; }
-        DbSet<Round1Assignment> Round1Assignments { get; set; }
+
         DbSet<SubmissionGroup> SubmissionGroups { get; set; }
         DbSet<SongCreatorPick> SongCreatorPicks { get; set; }
 
-        // Judging System entities
-        DbSet<JudgingCriteria> JudgingCriterias { get; set; }
-        DbSet<SubmissionJudgment> SubmissionJudgments { get; set; }
-        DbSet<CriteriaScore> CriteriaScores { get; set; }
+
+
+        // Hybrid Fair-Play Tournament entities
+        DbSet<Judgement> Judgements { get; set; }
+        DbSet<FeedbackRating> FeedbackRatings { get; set; }
 
         // Blog entities - Epic 6
         DbSet<BlogArticle> BlogArticles { get; set; }

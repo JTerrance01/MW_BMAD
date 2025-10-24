@@ -58,11 +58,7 @@ namespace MixWarz.Infrastructure.Persistence.Seed
                 await SeedBlogArticlesAsync(context, userManager);
             }
 
-            // Seed JudgingCriteria if none exist
-            if (!context.JudgingCriterias.Any())
-            {
-                await SeedJudgingCriteriaAsync(context);
-            }
+            // Note: Old judging criteria removed with Hybrid Fair-Play Tournament system
 
             // Ensure all blog articles (except the draft) have BlogArticleStatus.Published
             var articles = await context.BlogArticles.ToListAsync();
@@ -824,84 +820,6 @@ maintain consistent energy.
             await context.SaveChangesAsync();
         }
 
-        private static async Task SeedJudgingCriteriaAsync(AppDbContext context)
-        {
-            // Get competition 21 (or any competition if 21 doesn't exist)
-            var competition = await context.Competitions.FirstOrDefaultAsync(c => c.CompetitionId == 21);
-            if (competition == null)
-            {
-                // If competition 21 doesn't exist, use the first available competition
-                competition = await context.Competitions.FirstOrDefaultAsync();
-                if (competition == null)
-                {
-                    // No competitions exist, skip seeding criteria
-                    return;
-                }
-            }
 
-            var judgingCriteria = new List<JudgingCriteria>
-            {
-                new JudgingCriteria
-                {
-                    Id = 1,
-                    CompetitionId = competition.CompetitionId,
-                    Name = "Technical Clarity",
-                    Description = "Overall mix clarity, frequency balance, technical execution",
-                    ScoringType = ScoringType.Slider,
-                    MinScore = 1,
-                    MaxScore = 10,
-                    Weight = 0.3m,
-                    DisplayOrder = 1,
-                    IsCommentRequired = false
-                },
-                new JudgingCriteria
-                {
-                    Id = 2,
-                    CompetitionId = competition.CompetitionId,
-                    Name = "Creative Balance",
-                    Description = "Creative use of effects, spatial placement, artistic vision",
-                    ScoringType = ScoringType.Slider,
-                    MinScore = 1,
-                    MaxScore = 10,
-                    Weight = 0.25m,
-                    DisplayOrder = 2,
-                    IsCommentRequired = false
-                },
-                new JudgingCriteria
-                {
-                    Id = 3,
-                    CompetitionId = competition.CompetitionId,
-                    Name = "Dynamic Range",
-                    Description = "Use of dynamics, compression, overall punch",
-                    ScoringType = ScoringType.Stars,
-                    MinScore = 1,
-                    MaxScore = 5,
-                    Weight = 0.2m,
-                    DisplayOrder = 3,
-                    IsCommentRequired = false
-                },
-                new JudgingCriteria
-                {
-                    Id = 4,
-                    CompetitionId = competition.CompetitionId,
-                    Name = "Stereo Imaging",
-                    Description = "Width, depth, stereo field utilization",
-                    ScoringType = ScoringType.RadioButtons,
-                    MinScore = 1,
-                    MaxScore = 4,
-                    Weight = 0.25m,
-                    DisplayOrder = 4,
-                    IsCommentRequired = false,
-                    ScoringOptions = "[\"Poor\",\"Fair\",\"Good\",\"Excellent\"]"
-                }
-            };
-
-            foreach (var criteria in judgingCriteria)
-            {
-                context.JudgingCriterias.Add(criteria);
-            }
-
-            await context.SaveChangesAsync();
-        }
     }
 }

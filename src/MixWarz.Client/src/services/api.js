@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// Define API base URL - hardcoded for development
-const API_BASE_URL = "https://localhost:7001";
-console.log(`Using API base URL: ${API_BASE_URL}`);
+// Define API base URL - use relative URLs since we have proxy configured
+const API_BASE_URL = "";
+console.log(`Using API base URL: ${API_BASE_URL || "relative URLs with proxy"}`);
 
 // Track connection status
 let serverConnected = false;

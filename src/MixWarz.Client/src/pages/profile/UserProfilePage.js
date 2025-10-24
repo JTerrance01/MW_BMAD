@@ -31,6 +31,7 @@ import userService from "../../services/userService";
 import useApiCall from "../../utils/useApiCall";
 import { useError } from "../../utils/errorContext";
 import { updateUserProfile } from "../../store/authSlice";
+import SafeImage from "../../components/common/SafeImage.js";
 
 const UserProfilePage = () => {
   const { username } = useParams();
@@ -691,31 +692,21 @@ const UserProfilePage = () => {
           <Card className="shadow-sm border-0">
             <Card.Body className="text-center">
               <div className="mb-4">
-                {profile.profilePictureUrl ? (
-                  <Image
-                    src={profile.profilePictureUrl}
-                    roundedCircle
-                    className="profile-image"
-                    style={{
-                      width: "150px",
-                      height: "150px",
-                      objectFit: "cover",
-                      border: "3px solid #f8f9fa",
-                    }}
-                    alt={profile.username}
-                  />
-                ) : (
-                  <div
-                    className="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto"
-                    style={{
-                      width: "150px",
-                      height: "150px",
-                      border: "3px solid #f8f9fa",
-                    }}
-                  >
-                    <FaUser size={64} className="text-secondary" />
-                  </div>
-                )}
+                <SafeImage
+                  src={profile.profilePictureUrl}
+                  alt={profile.username}
+                  roundedCircle
+                  className="profile-image"
+                  style={{
+                    width: "150px",
+                    height: "150px",
+                    objectFit: "cover",
+                    border: "3px solid #f8f9fa",
+                  }}
+                  fallbackIcon={FaUser}
+                  fallbackSize={64}
+                  fallbackColor="text-secondary"
+                />
               </div>
 
               <h4 className="mb-1">

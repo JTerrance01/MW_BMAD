@@ -457,89 +457,70 @@ namespace MixWarz.Infrastructure.Migrations
                     b.ToTable("Competitions");
                 });
 
-            modelBuilder.Entity("MixWarz.Domain.Entities.CriteriaScore", b =>
+            modelBuilder.Entity("MixWarz.Domain.Entities.FeedbackRating", b =>
                 {
-                    b.Property<int>("CriteriaScoreId")
+                    b.Property<int>("FeedbackRatingId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CriteriaScoreId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FeedbackRatingId"));
 
-                    b.Property<string>("Comments")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("JudgingCriteriaId")
+                    b.Property<int>("JudgementId")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("Score")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTimeOffset>("ScoreTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SubmissionJudgmentId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("CriteriaScoreId");
-
-                    b.HasIndex("JudgingCriteriaId");
-
-                    b.HasIndex("SubmissionJudgmentId", "JudgingCriteriaId")
-                        .IsUnique();
-
-                    b.ToTable("CriteriaScores");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.JudgingCriteria", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CompetitionId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsCommentRequired")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("MaxScore")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("MinScore")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Name")
+                    b.Property<string>("ParticipantId")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ScoringOptions")
                         .HasColumnType("text");
 
-                    b.Property<int>("ScoringType")
+                    b.Property<DateTime>("RatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Rating")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("Weight")
-                        .HasColumnType("decimal(5,4)");
+                    b.HasKey("FeedbackRatingId");
 
-                    b.HasKey("Id");
+                    b.HasIndex("ParticipantId");
 
-                    b.HasIndex("CompetitionId", "DisplayOrder");
+                    b.HasIndex("JudgementId", "ParticipantId")
+                        .IsUnique();
 
-                    b.ToTable("JudgingCriterias");
+                    b.ToTable("FeedbackRatings");
+                });
+
+            modelBuilder.Entity("MixWarz.Domain.Entities.Judgement", b =>
+                {
+                    b.Property<int>("JudgementId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("JudgementId"));
+
+                    b.Property<string>("Comments")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("JudgeId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SubmissionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("JudgementId");
+
+                    b.HasIndex("JudgeId");
+
+                    b.HasIndex("SubmissionId", "JudgeId")
+                        .IsUnique();
+
+                    b.ToTable("Judgements");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.Order", b =>
@@ -739,45 +720,6 @@ namespace MixWarz.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("MixWarz.Domain.Entities.Round1Assignment", b =>
-                {
-                    b.Property<int>("Round1AssignmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Round1AssignmentId"));
-
-                    b.Property<int>("AssignedGroupNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CompetitionId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("HasVoted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("VoterGroupNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("VoterId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("VotingCompletedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Round1AssignmentId");
-
-                    b.HasIndex("VoterId");
-
-                    b.HasIndex("CompetitionId", "AssignedGroupNumber");
-
-                    b.HasIndex("CompetitionId", "VoterId")
-                        .IsUnique();
-
-                    b.ToTable("Round1Assignments");
-                });
-
             modelBuilder.Entity("MixWarz.Domain.Entities.SongCreatorPick", b =>
                 {
                     b.Property<int>("PickId")
@@ -928,101 +870,6 @@ namespace MixWarz.Infrastructure.Migrations
                     b.ToTable("SubmissionGroups");
                 });
 
-            modelBuilder.Entity("MixWarz.Domain.Entities.SubmissionJudgment", b =>
-                {
-                    b.Property<int>("SubmissionJudgmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SubmissionJudgmentId"));
-
-                    b.Property<int>("CompetitionId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("JudgeId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("JudgmentTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("OverallComments")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<decimal?>("OverallScore")
-                        .HasColumnType("numeric");
-
-                    b.Property<int>("SubmissionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("VotingRound")
-                        .HasColumnType("integer");
-
-                    b.HasKey("SubmissionJudgmentId");
-
-                    b.HasIndex("JudgeId");
-
-                    b.HasIndex("CompetitionId", "VotingRound");
-
-                    b.HasIndex("SubmissionId", "JudgeId", "VotingRound")
-                        .IsUnique();
-
-                    b.ToTable("SubmissionJudgments");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.SubmissionVote", b =>
-                {
-                    b.Property<int>("SubmissionVoteId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SubmissionVoteId"));
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("text");
-
-                    b.Property<int>("CompetitionId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("Rank")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("SubmissionId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("VoteTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("VoterId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("VotingRound")
-                        .HasColumnType("integer");
-
-                    b.HasKey("SubmissionVoteId");
-
-                    b.HasIndex("SubmissionId");
-
-                    b.HasIndex("VoterId");
-
-                    b.HasIndex("CompetitionId", "VotingRound");
-
-                    b.HasIndex("CompetitionId", "VoterId", "VotingRound");
-
-                    b.ToTable("SubmissionVotes");
-                });
-
             modelBuilder.Entity("MixWarz.Domain.Entities.Subscription", b =>
                 {
                     b.Property<int>("Id")
@@ -1095,6 +942,9 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<decimal?>("JudgingProwessScore")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime?>("LastLoginDate")
                         .HasColumnType("timestamp with time zone");
@@ -1438,34 +1288,42 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Navigation("Organizer");
                 });
 
-            modelBuilder.Entity("MixWarz.Domain.Entities.CriteriaScore", b =>
+            modelBuilder.Entity("MixWarz.Domain.Entities.FeedbackRating", b =>
                 {
-                    b.HasOne("MixWarz.Domain.Entities.JudgingCriteria", "JudgingCriteria")
-                        .WithMany("CriteriaScores")
-                        .HasForeignKey("JudgingCriteriaId")
+                    b.HasOne("MixWarz.Domain.Entities.Judgement", "Judgement")
+                        .WithMany("FeedbackRatings")
+                        .HasForeignKey("JudgementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MixWarz.Domain.Entities.User", "Participant")
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MixWarz.Domain.Entities.SubmissionJudgment", "SubmissionJudgment")
-                        .WithMany("CriteriaScores")
-                        .HasForeignKey("SubmissionJudgmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Judgement");
 
-                    b.Navigation("JudgingCriteria");
-
-                    b.Navigation("SubmissionJudgment");
+                    b.Navigation("Participant");
                 });
 
-            modelBuilder.Entity("MixWarz.Domain.Entities.JudgingCriteria", b =>
+            modelBuilder.Entity("MixWarz.Domain.Entities.Judgement", b =>
                 {
-                    b.HasOne("MixWarz.Domain.Entities.Competition", "Competition")
+                    b.HasOne("MixWarz.Domain.Entities.User", "Judge")
                         .WithMany()
-                        .HasForeignKey("CompetitionId")
+                        .HasForeignKey("JudgeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MixWarz.Domain.Entities.Submission", "Submission")
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Competition");
+                    b.Navigation("Judge");
+
+                    b.Navigation("Submission");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.Order", b =>
@@ -1507,25 +1365,6 @@ namespace MixWarz.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.Round1Assignment", b =>
-                {
-                    b.HasOne("MixWarz.Domain.Entities.Competition", "Competition")
-                        .WithMany()
-                        .HasForeignKey("CompetitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MixWarz.Domain.Entities.User", "Voter")
-                        .WithMany()
-                        .HasForeignKey("VoterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Competition");
-
-                    b.Navigation("Voter");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.SongCreatorPick", b =>
@@ -1583,60 +1422,6 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Navigation("Competition");
 
                     b.Navigation("Submission");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.SubmissionJudgment", b =>
-                {
-                    b.HasOne("MixWarz.Domain.Entities.Competition", "Competition")
-                        .WithMany()
-                        .HasForeignKey("CompetitionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MixWarz.Domain.Entities.User", "Judge")
-                        .WithMany()
-                        .HasForeignKey("JudgeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MixWarz.Domain.Entities.Submission", "Submission")
-                        .WithMany()
-                        .HasForeignKey("SubmissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Competition");
-
-                    b.Navigation("Judge");
-
-                    b.Navigation("Submission");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.SubmissionVote", b =>
-                {
-                    b.HasOne("MixWarz.Domain.Entities.Competition", "Competition")
-                        .WithMany()
-                        .HasForeignKey("CompetitionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("MixWarz.Domain.Entities.Submission", "Submission")
-                        .WithMany("Votes")
-                        .HasForeignKey("SubmissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MixWarz.Domain.Entities.User", "Voter")
-                        .WithMany()
-                        .HasForeignKey("VoterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Competition");
-
-                    b.Navigation("Submission");
-
-                    b.Navigation("Voter");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.Subscription", b =>
@@ -1741,9 +1526,9 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Navigation("Submissions");
                 });
 
-            modelBuilder.Entity("MixWarz.Domain.Entities.JudgingCriteria", b =>
+            modelBuilder.Entity("MixWarz.Domain.Entities.Judgement", b =>
                 {
-                    b.Navigation("CriteriaScores");
+                    b.Navigation("FeedbackRatings");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.Order", b =>
@@ -1758,16 +1543,6 @@ namespace MixWarz.Infrastructure.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("UserProductAccesses");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.Submission", b =>
-                {
-                    b.Navigation("Votes");
-                });
-
-            modelBuilder.Entity("MixWarz.Domain.Entities.SubmissionJudgment", b =>
-                {
-                    b.Navigation("CriteriaScores");
                 });
 
             modelBuilder.Entity("MixWarz.Domain.Entities.User", b =>

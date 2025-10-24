@@ -84,6 +84,26 @@ This architecture ensures separation of concerns and maintainability.
   - Backward compatibility with defaults
   - Clear audit trail of rule values
 
+### Hybrid Fair-Play Tournament Architecture Pattern
+
+- **API Versioning Pattern**: `/api/v2/` endpoints for new tournament architecture
+- **Tournament Lifecycle Management**:
+  - `ITournamentLifecycleService` for automated tournament progression
+  - `StartUniversalJudging` and `TallyUniversalJudgingResults` methods
+  - Status-driven workflow automation
+- **Judging Prowess Calculation**:
+  - `IJudgingProwessCalculator` for score accuracy and feedback quality metrics
+  - Real-time prowess updates during tournament lifecycle
+- **Service Integration Pattern**:
+  - Clean separation between judging, lifecycle, and prowess services
+  - Dependency injection with proper interface abstraction
+  - Async/await throughout for performance
+- **Legacy System Migration Pattern**:
+  - Systematic removal of obsolete code (controllers, services, models)
+  - Database migration to drop obsolete tables
+  - Frontend migration to new API endpoints
+  - Gradual transition with zero downtime
+
 ### Data Seeding Pattern
 
 - Used `DataSeeder` class in Infrastructure layer for initial data population

@@ -85,7 +85,6 @@ namespace MixWarz.Domain.Entities
         public virtual Competition Competition { get; set; }
         public virtual User User { get; set; }
 
-        // Navigation property for votes
-        public virtual ICollection<SubmissionVote> Votes { get; set; } = [];
+
     }
 }

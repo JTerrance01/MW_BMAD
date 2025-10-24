@@ -24,14 +24,6 @@ namespace MixWarz.Domain.Interfaces
         // Admin-specific methods
         Task<int> GetSubmissionCountForCompetitionAsync(int competitionId, CancellationToken cancellationToken = default);
 
-        // Judgment-specific methods
-        /// <summary>
-        /// Adds or updates a submission judgment and its associated criteria scores within a single transaction.
-        /// </summary>
-        /// <param name="judgment">The submission judgment entity to add or update.</param>
-        /// <param name="scores">A collection of criteria scores associated with the judgment.</param>
-        /// <param name="isUpdate">Indicates whether this is an update operation (removes existing criteria scores).</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task AddJudgmentWithScoresAsync(SubmissionJudgment judgment, IEnumerable<CriteriaScore> scores, bool isUpdate, CancellationToken cancellationToken);
+
     }
 }

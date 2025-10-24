@@ -168,6 +168,7 @@ Desktop.ini
 temp/
 uploads/
 AppData/
+Misc_test_files/
 
 # Test files (optional - uncomment if you don't want to track test files)
 # test-*.js

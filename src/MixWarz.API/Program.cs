@@ -286,7 +286,11 @@ else
 }
 
 // Important: UseCors must come before UseAuthentication/Authorization
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 

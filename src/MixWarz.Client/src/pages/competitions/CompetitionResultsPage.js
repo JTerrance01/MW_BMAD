@@ -87,7 +87,7 @@ const CompetitionResultsPage = () => {
     
     // Handle URLs that start with uploads/ (relative paths)
     if (url.startsWith('uploads/') || url.startsWith('/uploads/')) {
-      const baseUrl = process.env.REACT_APP_API_URL || 'https://localhost:7001';
+      const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       let cleanPath = url.startsWith('/') ? url.slice(1) : url;
       
       // Fix double uploads/ in path (e.g., "uploads/uploads/submissions/..." -> "uploads/submissions/...")

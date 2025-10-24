@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://localhost:7001/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 /**
  * Creates a Stripe checkout session for the provided cart items

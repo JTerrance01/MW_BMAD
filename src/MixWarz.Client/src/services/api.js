@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Define API base URL - hardcoded for development
-const API_BASE_URL = "https://localhost:7001";
+const API_BASE_URL = "http://localhost:5000";
 console.log(`Using API base URL: ${API_BASE_URL}`);
 
 // Track connection status

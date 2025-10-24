@@ -20,7 +20,7 @@ import CompetitionTimeline from "../../components/competitions/CompetitionTimeli
 import VotingRound1Card from "../../components/competitions/VotingRound1Card";
 import VotingRound2Card from "../../components/competitions/VotingRound2Card";
 import JudgingInterface from "../../components/competitions/JudgingInterface";
-import hybridTournamentService from "../../services/hybridTournamentService";
+import hybridTournamentService from "../../services/hybridTournamentService.js";
 import MultitrackDownloadSection from "../../components/competitions/MultitrackDownloadSection";
 import SubmissionUploadForm from "../../components/competitions/SubmissionUploadForm";
 import UserSubmissionCard from "../../components/competitions/UserSubmissionCard";

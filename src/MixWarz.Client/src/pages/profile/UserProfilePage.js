@@ -31,7 +31,7 @@ import userService from "../../services/userService";
 import useApiCall from "../../utils/useApiCall";
 import { useError } from "../../utils/errorContext";
 import { updateUserProfile } from "../../store/authSlice";
-import SafeImage from "../../components/common/SafeImage";
+import SafeImage from "../../components/common/SafeImage.js";
 
 const UserProfilePage = () => {
   const { username } = useParams();

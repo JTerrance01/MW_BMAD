@@ -44,7 +44,7 @@ import { Link } from "react-router-dom";
 import { Editor } from "@tinymce/tinymce-react";
 import { getStatusDisplayText, getStatusStyling } from "../../utils/competitionUtils";
 import axios from "axios";
-import hybridTournamentService from "../../services/hybridTournamentService";
+import hybridTournamentService from "../../services/hybridTournamentService.js";
 
 const AdminCompetitionsPage = () => {
   const dispatch = useDispatch();

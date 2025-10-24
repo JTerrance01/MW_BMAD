@@ -10,7 +10,7 @@ import {
   Image,
 } from "react-bootstrap";
 import { FaShoppingCart, FaUserCircle, FaCog } from "react-icons/fa";
-import SafeImage from "../common/SafeImage";
+import SafeImage from "../common/SafeImage.js";
 import { logout } from "../../store/authSlice";
 import Logo from "../common/Logo";
 import "./NavbarStyles.css";

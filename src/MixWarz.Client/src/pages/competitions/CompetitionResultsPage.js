@@ -20,7 +20,7 @@ import {
   FaVoteYea,
   FaUser,
 } from "react-icons/fa";
-import SafeImage from "../../components/common/SafeImage";
+import SafeImage from "../../components/common/SafeImage.js";
 import { fetchCompetitionResults } from "../../store/competitionSlice";
 import { getStatusDisplayText } from "../../utils/competitionUtils";
 import SimpleResultsAudioPlayer from "../../components/competitions/SimpleResultsAudioPlayer";

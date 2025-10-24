@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Base configuration for axios
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.REACT_APP_API_URL || ""; // Use relative URLs since we have proxy configured
 
 // Create instance with defaults
 const axiosInstance = axios.create({

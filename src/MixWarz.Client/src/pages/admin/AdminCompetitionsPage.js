@@ -326,7 +326,7 @@ const AdminCompetitionsPage = () => {
           
           const token = localStorage.getItem("token");
           const response = await axios.post(
-            `https://localhost:7001/api/competitions/${competitionId}/round2/setup`,
+            `/api/competitions/${competitionId}/round2/setup`,
             {},
             {
               headers: { Authorization: `Bearer ${token}` },
@@ -1001,7 +1001,7 @@ const AdminCompetitionsPage = () => {
   const updateCompetitionStatusDirect = async (competitionId, newStatus) => {
     const token = localStorage.getItem("token");
     const response = await axios.put(
-      `https://localhost:7001/api/v1/admin/competitions/${competitionId}/status`,
+      `/api/v1/admin/competitions/${competitionId}/status`,
       { newStatus },
       {
         headers: {

@@ -6,7 +6,7 @@ import axios from "axios";
  */
 class HybridTournamentService {
   constructor() {
-    this.baseURL = "https://localhost:7001";
+    this.baseURL = ""; // Use relative URLs since we have proxy configured
     this.apiVersion = "v2";
   }
 

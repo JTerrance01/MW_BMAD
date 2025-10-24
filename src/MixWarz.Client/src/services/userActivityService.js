@@ -1,7 +1,7 @@
 import api, { activityApi } from "./api";
 
 // Get the base URL from the same place api.js uses
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.REACT_APP_API_URL || ""; // Use relative URLs since we have proxy configured
 
 // Map of string activity types to numeric enum values - MUST match backend ActivityType enum exactly
 const ActivityTypeEnum = {

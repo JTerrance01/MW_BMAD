@@ -137,9 +137,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id", // Will be overridden by controller
+                JudgeId = "judge-user-id", // Will be overridden by controller
                 Score = 8,
-                Feedback = "Great mix! Really good use of reverb."
+                Comments = "Great mix! Really good use of reverb."
             };
 
             var json = JsonSerializer.Serialize(judgementDto);
@@ -172,9 +172,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 2, // Different from URL
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             var json = JsonSerializer.Serialize(judgementDto);
@@ -201,9 +201,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 11, // Invalid score (out of range 1-10)
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             var json = JsonSerializer.Serialize(judgementDto);
@@ -227,9 +227,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             var json = JsonSerializer.Serialize(judgementDto);
@@ -245,7 +245,7 @@ namespace MixWarz.Infrastructure.Tests.Controllers
         }
 
         [Fact]
-        public async Task RateFeedback_ValidRequest_ReturnsCreated()
+        public async Task RateComments_ValidRequest_ReturnsCreated()
         {
             // Arrange
             await SeedTestData();
@@ -256,8 +256,8 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var ratingDto = new RateFeedbackDto
             {
                 JudgementId = 1,
-                RaterUserId = "rater-user-id", // Will be overridden by controller
-                IsHelpful = true
+                ParticipantId = "rater-user-id", // Will be overridden by controller
+                Rating = 1
             };
 
             var json = JsonSerializer.Serialize(ratingDto);
@@ -275,12 +275,12 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var feedbackRating = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             Assert.Equal(1, feedbackRating.GetProperty("judgementId").GetInt32());
-            Assert.Equal("test-user-id", feedbackRating.GetProperty("raterUserId").GetString());
-            Assert.True(feedbackRating.GetProperty("isHelpful").GetBoolean());
+            Assert.Equal("test-user-id", feedbackRating.GetProperty("participantId").GetString());
+            Assert.Equal(1, feedbackRating.GetProperty("rating").GetInt32());
         }
 
         [Fact]
-        public async Task RateFeedback_JudgementIdMismatch_ReturnsBadRequest()
+        public async Task RateComments_JudgementIdMismatch_ReturnsBadRequest()
         {
             // Arrange
             await SeedTestData();
@@ -289,8 +289,8 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var ratingDto = new RateFeedbackDto
             {
                 JudgementId = 2, // Different from URL
-                RaterUserId = "rater-user-id",
-                IsHelpful = true
+                ParticipantId = "rater-user-id",
+                Rating = 1
             };
 
             var json = JsonSerializer.Serialize(ratingDto);
@@ -309,7 +309,7 @@ namespace MixWarz.Infrastructure.Tests.Controllers
         }
 
         [Fact]
-        public async Task RateFeedback_Unauthorized_ReturnsUnauthorized()
+        public async Task RateComments_Unauthorized_ReturnsUnauthorized()
         {
             // Arrange
             await SeedTestData();
@@ -318,8 +318,8 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var ratingDto = new RateFeedbackDto
             {
                 JudgementId = 1,
-                RaterUserId = "rater-user-id",
-                IsHelpful = true
+                ParticipantId = "rater-user-id",
+                Rating = 1
             };
 
             var json = JsonSerializer.Serialize(ratingDto);
@@ -475,9 +475,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             {
                 JudgementId = 1,
                 SubmissionId = 1,
-                JudgeUserId = judge.Id,
+                JudgeId = judge.Id,
                 Score = 0,
-                Feedback = "Placeholder",
+                Comments = "Placeholder",
                 SubmittedAt = DateTime.UtcNow.AddYears(-1) // Old date to indicate not yet submitted
             };
 
@@ -493,9 +493,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "test-user-id",
+                JudgeId = "test-user-id",
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             await judgingService.SubmitJudgement(judgementDto);
@@ -654,9 +654,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             {
                 JudgementId = 1,
                 SubmissionId = 1,
-                JudgeUserId = user2.Id,
+                JudgeId = user2.Id,
                 Score = 8,
-                Feedback = "Great mix!",
+                Comments = "Great mix!",
                 SubmittedAt = DateTime.UtcNow.AddDays(-1)
             };
 
@@ -664,9 +664,9 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             {
                 JudgementId = 2,
                 SubmissionId = 2,
-                JudgeUserId = user1.Id,
+                JudgeId = user1.Id,
                 Score = 7,
-                Feedback = "Good work!",
+                Comments = "Good work!",
                 SubmittedAt = DateTime.UtcNow.AddDays(-1)
             };
 
@@ -677,8 +677,8 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             {
                 FeedbackRatingId = 1,
                 JudgementId = 1,
-                RaterUserId = user1.Id,
-                IsHelpful = true,
+                ParticipantId = user1.Id,
+                Rating = 1,
                 RatedAt = DateTime.UtcNow
             };
 
@@ -686,8 +686,8 @@ namespace MixWarz.Infrastructure.Tests.Controllers
             {
                 FeedbackRatingId = 2,
                 JudgementId = 2,
-                RaterUserId = user2.Id,
-                IsHelpful = true,
+                ParticipantId = user2.Id,
+                Rating = 1,
                 RatedAt = DateTime.UtcNow
             };
 

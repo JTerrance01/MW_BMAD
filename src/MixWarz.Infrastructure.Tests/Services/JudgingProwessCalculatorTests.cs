@@ -145,14 +145,14 @@ namespace MixWarz.Infrastructure.Tests.Services
             var judgements = new List<Judgement>
             {
                 // Perfect judge's scores: 8, 7, 9
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Great work!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Good job!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeUserId = "perfect-judge-id", Score = 9, Feedback = "Excellent!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Great work!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Good job!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeId = "perfect-judge-id", Score = 9, Comments = "Excellent!", SubmittedAt = DateTime.UtcNow },
 
                 // Other judges' scores to create the same averages
-                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeUserId = "inaccurate-judge-id", Score = 8, Feedback = "Okay", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeUserId = "inaccurate-judge-id", Score = 7, Feedback = "Okay", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeUserId = "inaccurate-judge-id", Score = 9, Feedback = "Okay", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeId = "inaccurate-judge-id", Score = 8, Comments = "Okay", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeId = "inaccurate-judge-id", Score = 7, Comments = "Okay", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeId = "inaccurate-judge-id", Score = 9, Comments = "Okay", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);
@@ -160,9 +160,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Add helpful feedback ratings for perfect judge
             var feedbackRatings = new List<FeedbackRating>
             {
-                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, RaterUserId = "submitter1-id", IsHelpful = true, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, RaterUserId = "submitter2-id", IsHelpful = true, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 3, JudgementId = 3, RaterUserId = "submitter1-id", IsHelpful = true, RatedAt = DateTime.UtcNow }
+                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, ParticipantId = "submitter1-id", Rating = 1, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, ParticipantId = "submitter2-id", Rating = 1, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 3, JudgementId = 3, ParticipantId = "submitter1-id", Rating = 1, RatedAt = DateTime.UtcNow }
             };
 
             _context.FeedbackRatings.AddRange(feedbackRatings);
@@ -184,17 +184,17 @@ namespace MixWarz.Infrastructure.Tests.Services
             var judgements = new List<Judgement>
             {
                 // Inaccurate judge's scores: 3, 2, 4 (far from actual averages of 8, 7, 9)
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "inaccurate-judge-id", Score = 3, Feedback = "Bad", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "inaccurate-judge-id", Score = 2, Feedback = "Terrible", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeUserId = "inaccurate-judge-id", Score = 4, Feedback = "Poor", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "inaccurate-judge-id", Score = 3, Comments = "Bad", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "inaccurate-judge-id", Score = 2, Comments = "Terrible", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeId = "inaccurate-judge-id", Score = 4, Comments = "Poor", SubmittedAt = DateTime.UtcNow },
 
                 // Other judges create high averages (8, 7, 9)
-                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Great!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Good!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeUserId = "perfect-judge-id", Score = 9, Feedback = "Excellent!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 7, SubmissionId = 1, JudgeUserId = "helpful-judge-id", Score = 8, Feedback = "Nice!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 8, SubmissionId = 2, JudgeUserId = "helpful-judge-id", Score = 7, Feedback = "Solid!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 9, SubmissionId = 3, JudgeUserId = "helpful-judge-id", Score = 9, Feedback = "Amazing!", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Great!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Good!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeId = "perfect-judge-id", Score = 9, Comments = "Excellent!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 7, SubmissionId = 1, JudgeId = "helpful-judge-id", Score = 8, Comments = "Nice!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 8, SubmissionId = 2, JudgeId = "helpful-judge-id", Score = 7, Comments = "Solid!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 9, SubmissionId = 3, JudgeId = "helpful-judge-id", Score = 9, Comments = "Amazing!", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);
@@ -202,9 +202,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Add unhelpful feedback ratings for inaccurate judge
             var feedbackRatings = new List<FeedbackRating>
             {
-                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, RaterUserId = "submitter1-id", IsHelpful = false, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, RaterUserId = "submitter2-id", IsHelpful = false, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 3, JudgementId = 3, RaterUserId = "submitter1-id", IsHelpful = false, RatedAt = DateTime.UtcNow }
+                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, ParticipantId = "submitter1-id", Rating = 0, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, ParticipantId = "submitter2-id", Rating = 0, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 3, JudgementId = 3, ParticipantId = "submitter1-id", Rating = 0, RatedAt = DateTime.UtcNow }
             };
 
             _context.FeedbackRatings.AddRange(feedbackRatings);
@@ -226,17 +226,17 @@ namespace MixWarz.Infrastructure.Tests.Services
             var judgements = new List<Judgement>
             {
                 // Helpful judge with moderate accuracy
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "helpful-judge-id", Score = 7, Feedback = "Detailed feedback", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "helpful-judge-id", Score = 6, Feedback = "Constructive criticism", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeUserId = "helpful-judge-id", Score = 8, Feedback = "Useful suggestions", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "helpful-judge-id", Score = 7, Comments = "Detailed feedback", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "helpful-judge-id", Score = 6, Comments = "Constructive criticism", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeId = "helpful-judge-id", Score = 8, Comments = "Useful suggestions", SubmittedAt = DateTime.UtcNow },
 
                 // Create averages of 8, 7, 9
-                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Great!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Good!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeUserId = "perfect-judge-id", Score = 9, Feedback = "Excellent!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 7, SubmissionId = 1, JudgeUserId = "inaccurate-judge-id", Score = 9, Feedback = "Okay", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 8, SubmissionId = 2, JudgeUserId = "inaccurate-judge-id", Score = 8, Feedback = "Okay", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 9, SubmissionId = 3, JudgeUserId = "inaccurate-judge-id", Score = 9, Feedback = "Okay", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Great!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Good!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeId = "perfect-judge-id", Score = 9, Comments = "Excellent!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 7, SubmissionId = 1, JudgeId = "inaccurate-judge-id", Score = 9, Comments = "Okay", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 8, SubmissionId = 2, JudgeId = "inaccurate-judge-id", Score = 8, Comments = "Okay", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 9, SubmissionId = 3, JudgeId = "inaccurate-judge-id", Score = 9, Comments = "Okay", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);
@@ -244,9 +244,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Mixed feedback ratings (2 helpful, 1 not helpful)
             var feedbackRatings = new List<FeedbackRating>
             {
-                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, RaterUserId = "submitter1-id", IsHelpful = true, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, RaterUserId = "submitter2-id", IsHelpful = true, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 3, JudgementId = 3, RaterUserId = "submitter1-id", IsHelpful = false, RatedAt = DateTime.UtcNow }
+                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, ParticipantId = "submitter1-id", Rating = 1, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, ParticipantId = "submitter2-id", Rating = 1, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 3, JudgementId = 3, ParticipantId = "submitter1-id", Rating = 0, RatedAt = DateTime.UtcNow }
             };
 
             _context.FeedbackRatings.AddRange(feedbackRatings);
@@ -267,8 +267,8 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Create only 2 judgements (below minimum of 3)
             var judgements = new List<Judgement>
             {
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Good work!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Nice job!", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Good work!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Nice job!", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);
@@ -288,14 +288,14 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Create judgements with perfect accuracy but no feedback ratings
             var judgements = new List<Judgement>
             {
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Great work!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Good job!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeUserId = "perfect-judge-id", Score = 9, Feedback = "Excellent!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Great work!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Good job!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeId = "perfect-judge-id", Score = 9, Comments = "Excellent!", SubmittedAt = DateTime.UtcNow },
 
                 // Other judge to create same averages
-                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeUserId = "inaccurate-judge-id", Score = 8, Feedback = "Okay", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeUserId = "inaccurate-judge-id", Score = 7, Feedback = "Okay", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeUserId = "inaccurate-judge-id", Score = 9, Feedback = "Okay", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeId = "inaccurate-judge-id", Score = 8, Comments = "Okay", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeId = "inaccurate-judge-id", Score = 7, Comments = "Okay", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeId = "inaccurate-judge-id", Score = 9, Comments = "Okay", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);
@@ -316,17 +316,17 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Arrange
             var judgements = new List<Judgement>
             {
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Great work!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Good job!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeUserId = "perfect-judge-id", Score = 9, Feedback = "Excellent!", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Great work!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Good job!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeId = "perfect-judge-id", Score = 9, Comments = "Excellent!", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);
 
             var feedbackRatings = new List<FeedbackRating>
             {
-                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, RaterUserId = "submitter1-id", IsHelpful = true, RatedAt = DateTime.UtcNow },
-                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, RaterUserId = "submitter2-id", IsHelpful = false, RatedAt = DateTime.UtcNow }
+                new FeedbackRating { FeedbackRatingId = 1, JudgementId = 1, ParticipantId = "submitter1-id", Rating = 1, RatedAt = DateTime.UtcNow },
+                new FeedbackRating { FeedbackRatingId = 2, JudgementId = 2, ParticipantId = "submitter2-id", Rating = 0, RatedAt = DateTime.UtcNow }
             };
 
             _context.FeedbackRatings.AddRange(feedbackRatings);
@@ -336,7 +336,7 @@ namespace MixWarz.Infrastructure.Tests.Services
             var details = await _calculator.GetProwessCalculationDetails(1, "perfect-judge-id");
 
             // Assert
-            Assert.Equal("perfect-judge-id", details.JudgeUserId);
+            Assert.Equal("perfect-judge-id", details.JudgeId);
             Assert.Equal(1, details.CompetitionId);
             Assert.Equal(3, details.TotalJudgements);
             Assert.Equal(1, details.HelpfulFeedbackCount);
@@ -352,13 +352,13 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Arrange
             var judgements = new List<Judgement>
             {
-                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeUserId = "perfect-judge-id", Score = 8, Feedback = "Great!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeUserId = "perfect-judge-id", Score = 7, Feedback = "Good!", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeUserId = "perfect-judge-id", Score = 9, Feedback = "Excellent!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 1, SubmissionId = 1, JudgeId = "perfect-judge-id", Score = 8, Comments = "Great!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 2, SubmissionId = 2, JudgeId = "perfect-judge-id", Score = 7, Comments = "Good!", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 3, SubmissionId = 3, JudgeId = "perfect-judge-id", Score = 9, Comments = "Excellent!", SubmittedAt = DateTime.UtcNow },
 
-                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeUserId = "inaccurate-judge-id", Score = 5, Feedback = "Meh", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeUserId = "inaccurate-judge-id", Score = 4, Feedback = "Poor", SubmittedAt = DateTime.UtcNow },
-                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeUserId = "inaccurate-judge-id", Score = 6, Feedback = "Okay", SubmittedAt = DateTime.UtcNow }
+                new Judgement { JudgementId = 4, SubmissionId = 1, JudgeId = "inaccurate-judge-id", Score = 5, Comments = "Meh", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 5, SubmissionId = 2, JudgeId = "inaccurate-judge-id", Score = 4, Comments = "Poor", SubmittedAt = DateTime.UtcNow },
+                new Judgement { JudgementId = 6, SubmissionId = 3, JudgeId = "inaccurate-judge-id", Score = 6, Comments = "Okay", SubmittedAt = DateTime.UtcNow }
             };
 
             _context.Judgements.AddRange(judgements);

@@ -47,7 +47,7 @@ namespace MixWarz.Infrastructure.Tests.Services
             var submitter = new User
             {
                 Id = "submitter-user-id",
-                UserName = "submitter@test.com", 
+                UserName = "submitter@test.com",
                 Email = "submitter@test.com",
                 FirstName = "Submitter",
                 LastName = "User"
@@ -93,9 +93,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             {
                 JudgementId = 1,
                 SubmissionId = 1,
-                JudgeUserId = judge.Id,
+                JudgeId = judge.Id,
                 Score = 0, // Will be updated when judgement is submitted
-                Feedback = "Placeholder", // Will be updated when judgement is submitted
+                Comments = "Placeholder", // Will be updated when judgement is submitted
                 SubmittedAt = DateTime.UtcNow.AddYears(-1), // Old date to indicate not yet submitted
                 Submission = submission,
                 Judge = judge
@@ -112,9 +112,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             var dto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix! Really good use of reverb."
+                Comments = "Great mix! Really good use of reverb."
             };
 
             // Act
@@ -123,16 +123,16 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Assert
             Assert.NotNull(result);
             Assert.Equal(1, result.SubmissionId);
-            Assert.Equal("judge-user-id", result.JudgeUserId);
+            Assert.Equal("judge-user-id", result.JudgeId);
             Assert.Equal(8, result.Score);
-            Assert.Equal("Great mix! Really good use of reverb.", result.Feedback);
+            Assert.Equal("Great mix! Really good use of reverb.", result.Comments);
             Assert.True((DateTime.UtcNow - result.SubmittedAt).TotalSeconds < 5);
 
             // Verify it was saved to database
             var savedJudgement = await _context.Judgements.FirstOrDefaultAsync(j => j.JudgementId == result.JudgementId);
             Assert.NotNull(savedJudgement);
             Assert.Equal(8, savedJudgement.Score);
-            Assert.Equal("Great mix! Really good use of reverb.", savedJudgement.Feedback);
+            Assert.Equal("Great mix! Really good use of reverb.", savedJudgement.Comments);
         }
 
         [Fact]
@@ -142,9 +142,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             var dto = new SubmitJudgementDto
             {
                 SubmissionId = 999, // Non-existent
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             // Act & Assert
@@ -159,9 +159,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             var dto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "non-existent-judge", // Non-existent
+                JudgeId = "non-existent-judge", // Non-existent
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             // Act & Assert
@@ -188,9 +188,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             var dto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "unassigned-judge-id", // Not assigned to this submission
+                JudgeId = "unassigned-judge-id", // Not assigned to this submission
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             // Act & Assert
@@ -205,9 +205,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             var dto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 11, // Out of range (1-10)
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
 
             // Act & Assert
@@ -216,24 +216,24 @@ namespace MixWarz.Infrastructure.Tests.Services
         }
 
         [Fact]
-        public async Task RateFeedback_ValidRequest_CreatesFeedbackRating()
+        public async Task RateFeedback_ValidRequest_CreatesCommentsRating()
         {
             // Arrange
             // First submit a judgement
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id", 
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix! Really good use of reverb."
+                Comments = "Great mix! Really good use of reverb."
             };
             var judgement = await _service.SubmitJudgement(judgementDto);
 
             var ratingDto = new RateFeedbackDto
             {
                 JudgementId = judgement.JudgementId,
-                RaterUserId = "submitter-user-id", // The submission owner rating the feedback
-                IsHelpful = true
+                ParticipantId = "submitter-user-id", // The submission owner rating the feedback
+                Rating = 1
             };
 
             // Act
@@ -242,14 +242,14 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Assert
             Assert.NotNull(result);
             Assert.Equal(judgement.JudgementId, result.JudgementId);
-            Assert.Equal("submitter-user-id", result.RaterUserId);
-            Assert.True(result.IsHelpful);
+            Assert.Equal("submitter-user-id", result.ParticipantId);
+            Assert.Equal(1, result.Rating);
             Assert.True((DateTime.UtcNow - result.RatedAt).TotalSeconds < 5);
 
             // Verify it was saved to database
             var savedRating = await _context.FeedbackRatings.FirstOrDefaultAsync(r => r.FeedbackRatingId == result.FeedbackRatingId);
             Assert.NotNull(savedRating);
-            Assert.True(savedRating.IsHelpful);
+            Assert.Equal(1, savedRating.Rating);
         }
 
         [Fact]
@@ -259,8 +259,8 @@ namespace MixWarz.Infrastructure.Tests.Services
             var dto = new RateFeedbackDto
             {
                 JudgementId = 999, // Non-existent
-                RaterUserId = "submitter-user-id",
-                IsHelpful = true
+                ParticipantId = "submitter-user-id",
+                Rating = 1
             };
 
             // Act & Assert
@@ -276,17 +276,17 @@ namespace MixWarz.Infrastructure.Tests.Services
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
             var judgement = await _service.SubmitJudgement(judgementDto);
 
             var ratingDto = new RateFeedbackDto
             {
                 JudgementId = judgement.JudgementId,
-                RaterUserId = "non-existent-rater", // Non-existent
-                IsHelpful = true
+                ParticipantId = "non-existent-rater", // Non-existent
+                Rating = 1
             };
 
             // Act & Assert
@@ -302,17 +302,17 @@ namespace MixWarz.Infrastructure.Tests.Services
             var judgementDto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix!"
+                Comments = "Great mix!"
             };
             var judgement = await _service.SubmitJudgement(judgementDto);
 
             var ratingDto = new RateFeedbackDto
             {
                 JudgementId = judgement.JudgementId,
-                RaterUserId = "submitter-user-id",
-                IsHelpful = true
+                ParticipantId = "submitter-user-id",
+                Rating = 1
             };
 
             // Rate it once
@@ -328,13 +328,13 @@ namespace MixWarz.Infrastructure.Tests.Services
         {
             // Arrange
             var initialJudgementCount = await _context.Judgements.CountAsync();
-            
+
             var dto = new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great mix! Really good use of reverb."
+                Comments = "Great mix! Really good use of reverb."
             };
 
             // Act
@@ -343,12 +343,12 @@ namespace MixWarz.Infrastructure.Tests.Services
             // Assert
             var finalJudgementCount = await _context.Judgements.CountAsync();
             Assert.Equal(initialJudgementCount, finalJudgementCount); // No new record created
-            
+
             // Verify the existing assignment was updated
             var updatedJudgement = await _context.Judgements.FirstOrDefaultAsync(j => j.JudgementId == 1);
             Assert.NotNull(updatedJudgement);
             Assert.Equal(8, updatedJudgement.Score);
-            Assert.Equal("Great mix! Really good use of reverb.", updatedJudgement.Feedback);
+            Assert.Equal("Great mix! Really good use of reverb.", updatedJudgement.Comments);
         }
 
         [Fact]
@@ -373,9 +373,9 @@ namespace MixWarz.Infrastructure.Tests.Services
             {
                 JudgementId = 2,
                 SubmissionId = 2,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 5,
-                Feedback = "Not so great.",
+                Comments = "Not so great.",
                 SubmittedAt = DateTime.UtcNow
             };
             _context.Judgements.Add(anotherAssignment);
@@ -385,29 +385,29 @@ namespace MixWarz.Infrastructure.Tests.Services
             await _service.SubmitJudgement(new SubmitJudgementDto
             {
                 SubmissionId = 1,
-                JudgeUserId = "judge-user-id",
+                JudgeId = "judge-user-id",
                 Score = 8,
-                Feedback = "Great work!"
+                Comments = "Great work!"
             });
 
             // Act - Rate one as helpful and another as not helpful
             var helpfulRating = await _service.RateFeedback(new RateFeedbackDto
             {
                 JudgementId = 1,
-                RaterUserId = "submitter-user-id",
-                IsHelpful = true
+                ParticipantId = "submitter-user-id",
+                Rating = 1
             });
 
             var notHelpfulRating = await _service.RateFeedback(new RateFeedbackDto
             {
                 JudgementId = 2,
-                RaterUserId = "submitter-user-id",
-                IsHelpful = false
+                ParticipantId = "submitter-user-id",
+                Rating = 0
             });
 
             // Assert
-            Assert.True(helpfulRating.IsHelpful);
-            Assert.False(notHelpfulRating.IsHelpful);
+            Assert.Equal(1, helpfulRating.Rating);
+            Assert.Equal(0, notHelpfulRating.Rating);
         }
 
         public void Dispose()

@@ -358,7 +358,7 @@ const CompetitionDetailPage = () => {
     }
     
     // For relative URLs, make them absolute
-    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    const baseUrl = process.env.REACT_APP_API_URL || ''; // Use relative URLs since we have proxy configured
     
     // Remove leading slash if present, then add base URL
     const cleanPath = url.startsWith('/') ? url.slice(1) : url;

@@ -10,6 +10,7 @@ import {
   Image,
 } from "react-bootstrap";
 import { FaShoppingCart, FaUserCircle, FaCog } from "react-icons/fa";
+import SafeImage from "../common/SafeImage";
 import { logout } from "../../store/authSlice";
 import Logo from "../common/Logo";
 import "./NavbarStyles.css";
@@ -79,18 +80,16 @@ const MainNavbar = () => {
               <NavDropdown
                 title={
                   <div className="d-inline-block">
-                    {user?.profilePictureUrl ? (
-                      <Image
-                        src={user.profilePictureUrl}
-                        alt={user.username}
-                        roundedCircle
-                        className="navbar-profile-image"
-                        width="30"
-                        height="30"
-                      />
-                    ) : (
-                      <FaUserCircle size={22} className="user-icon" />
-                    )}
+                    <SafeImage
+                      src={user?.profilePictureUrl}
+                      alt={user?.username || "User"}
+                      roundedCircle
+                      className="navbar-profile-image"
+                      style={{ width: "30px", height: "30px" }}
+                      fallbackIcon={FaUserCircle}
+                      fallbackSize={22}
+                      fallbackColor="user-icon"
+                    />
                   </div>
                 }
                 id="user-dropdown"
